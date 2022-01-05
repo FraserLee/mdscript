@@ -30,7 +30,30 @@ def compile_md(source):
     Compile a markdown file to html.
     """
     source += '\n'
-    result = ""
+    result = r'''
+<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+    <title>Markdown</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            margin: auto;
+            padding: 4em;
+            max-width: 48em;
+        }
+        h1 {
+            font-weight: 100;
+            font-size: 5em;
+            margin-bottom: 0.5em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>'''
     while len(source) > 0:
         # <EMPTY LINES>
         if source[0] == '\n':
@@ -108,7 +131,7 @@ def compile_md(source):
         #  # </LATEX>
         else:
             return result + "<unparseable>" + source + "</unparseable>"
-    return result
+    return result + '\n</body>\n</html>'
 
 def clean_text(text):
     """
@@ -172,9 +195,6 @@ class Test(unittest.TestCase):
         self.assertEqual(compile_md("## heading\n# other heading"), "<h2>heading</h2><h1>other heading</h1>")
 
 
-
-
-
     def test_compile_lists(self):
         self.assertEqual(compile_md("* item 1"), "<ul>\n<li>item 1</li>\n</ul>\n")
         self.assertEqual(compile_md("* symbol & j@%k \' \" >_< "), "<ul>\n<li>symbol &amp; j@%k &#39; &quot; &gt;_&lt;</li>\n</ul>\n")
@@ -190,12 +210,5 @@ class Test(unittest.TestCase):
         self.assertEqual(compile_md("4. item 1\n\n1. item 2"), "<ol>\n<li>item 1</li>\n</ol>\n<ol>\n<li>item 2</li>\n</ol>\n")
         # list with auto-numbered items
         self.assertEqual(compile_md("# item 1\n# item 2"), "<ol>\n<li>item 1</li>\n<li>item 2</li>\n</ol>\n")
-
-
-
-
-
-
-
 
 

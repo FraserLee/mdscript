@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # directory of the file to watch
     file_path = os.path.abspath(sys.argv[1])
     dir_path = os.path.dirname(file_path)
-    dest_path = dir_path + '/' + os.path.basename(file_path) + '.html'
+    dest_path = dir_path + '/' + os.path.basename(file_path).split('.')[0] + '.html'
     print(f'Watching {dir_path}\n- press ctrl+c to exit\n')
 
     # recompile any time anything changes in the directory
