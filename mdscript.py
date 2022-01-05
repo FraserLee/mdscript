@@ -142,6 +142,11 @@ def clean_text(text):
     text = text.replace('>', '&gt;')
     text = text.replace('"', '&quot;')
     text = text.replace("'", '&#39;')
+
+    # italics - replace every alternate pair of * with <em>
+    text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
+    text = re.sub(r'\*([^*]+)\*', r'<i>\1</i>', text)
+
     return text.strip()
 
 import unittest
