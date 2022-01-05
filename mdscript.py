@@ -23,7 +23,12 @@ def compile_md(source):
     while len(source) > 0:
         # <EMPTY LINES>
         if source[0] == '\n':
-            source = source[1:]
+            count = len(source)
+            source = source.lstrip('\n')
+            count -= len(source)
+
+            result += '<br>' * count
+
             continue
         # <HEADING>
         match = re.match(r'^(#+) ([^\n]+)\n', source)
@@ -38,7 +43,7 @@ def compile_md(source):
         # <PARAGRAPH>
         match = re.match(r'^([^\n]+)\n', source)
         if match:
-            result += '<p>' + match.group(1) + '</p>\n'
+            result += '<p>' + clean_text(match.group(1)) + '</p>\n'
             source = source[match.end():]
         # </PARAGRAPH>
 
@@ -107,6 +112,14 @@ def clean_text(text):
 
 import unittest
 class Test(unittest.TestCase):
+    def test_compile_paragraphs(self):
+        self.assertEqual(compile_md("Paragraph"), "<p>Paragraph</p>\n")
+        self.assertEqual(compile_md("Paragraph\n\n"), "<p>Paragraph</p>\n")
+        self.assertEqual(compile_md("  \t multiple words \t and space   and stuff"), "<p>multiple words \t and space   and stuff</p>\n")
+        self.assertEqual(compile_md("Paragraph\n\nParagraph"), "<p>Paragraph</p>\n<p>Paragraph</p>\n")
+        self.assertEqual(compile_md("Paragraph\n\nParagraph\n\nParagraph"), "<p>Paragraph</p>\n<p>Paragraph</p>\n<p>Paragraph</p>\n")
+        self.assertEqual(compile_md("symbols & j@%k \' \" >_< "), "<p>symbols &amp; j@%k &#39; &quot; &gt;_&lt;</p>\n")
+
     def test_compile_headings(self):
         self.assertEqual(compile_md("# Heading"), "<h1>Heading</h1>\n")
         self.assertEqual(compile_md("# Heading\n\n"), "<h1>Heading</h1>\n")
@@ -114,13 +127,63 @@ class Test(unittest.TestCase):
         self.assertEqual(compile_md("### Heading\n"), "<h3>Heading</h3>\n")
         self.assertEqual(compile_md("### arbitrary text"), "<h3>arbitrary text</h3>\n")
         self.assertEqual(compile_md("###   \t   space stuff    \t   \t    "), "<h3>space stuff</h3>\n")
-        self.assertEqual(compile_md("###### symbols & j@%k"), "<h6>symbols &amp; j@%k</h6>\n")
+        self.assertEqual(compile_md("###### symbols & j@%k \' \" >_< "), "<h6>symbols &amp; j@%k &#39; &quot; &gt;_&lt;</h6>\n")
         self.assertEqual(compile_md("####### too many tags"), "<h6>too many tags</h6>\n")
         self.assertEqual(compile_md("# Heading\nParagraph"), "<h1>Heading</h1>\n<p>Paragraph</p>\n")
         self.assertEqual(compile_md("# Heading\n\nParagraph\n\n"), "<h1>Heading</h1>\n<p>Paragraph</p>\n")
         self.assertEqual(compile_md("# Heading\nParagraph\n\n# Heading"), "<h1>Heading</h1>\n<p>Paragraph</p>\n<h1>Heading</h1>\n")
         self.assertEqual(compile_md("not a # heading"), "<p>not a # heading</p>\n")
         self.assertEqual(compile_md("#also not a heading"), "<p>#also not a heading</p>\n")
+
+    def test_compile_breaks(self):
+        # usually, one \n is absorbed and a single element is returned from
+        # multiple lines (inserting a ' ' in the gap). Two \n marks a </p><p>,
+        # and n>=3 marks n-2 <br>s.
+        # (sometimes the difference is glaringly obvious (like if you have two
+        # headings of different levels, or the start of a code-block or a
+        # block-quote), in which case one \n separates the elements and n>=2
+        # marks n-1 <br>s)
+
+        self.assertEqual(compile_md(""), "")
+        self.assertEqual(compile_md("\n"), "")
+        self.assertEqual(compile_md("\n\n"), "")
+        self.assertEqual(compile_md("\n\n\n\n\n\n\n"), "") # removed at the start irregardless
+
+        self.assertEqual(compile_md("one two\nthree four"), "<p>one two three four</p>")
+        self.assertEqual(compile_md("one two\n\nthree four"), "<p>one two</p><p>three four</p>")
+        self.assertEqual(compile_md("one two\n\n\nthree four"), "<p>one two</p><br><p>three four</p>")
+        self.assertEqual(compile_md("one two\n\n\n\n\n\n\nthree four"), "<p>one two</p><br><br><br><br><br><br><br><p>three four</p>")
+
+        self.assertEqual(compile_md("## heading\nparagraph"), "<h2>heading paragraph</p>")
+        self.assertEqual(compile_md("## heading\n\nparagraph"), "<h2>heading</h2><p>paragraph</p>")
+        self.assertEqual(compile_md("## heading\n\n\nparagraph"), "<h2>heading</h2><br><p>paragraph</p>")
+
+        self.assertEqual(compile_md("## heading\n# other heading"), "<h2>heading</h2><h1>other heading</h1>")
+
+
+
+
+
+    def test_compile_lists(self):
+        self.assertEqual(compile_md("* item 1"), "<ul>\n<li>item 1</li>\n</ul>\n")
+        self.assertEqual(compile_md("* symbol & j@%k \' \" >_< "), "<ul>\n<li>symbol &amp; j@%k &#39; &quot; &gt;_&lt;</li>\n</ul>\n")
+        self.assertEqual(compile_md("- item 1\n- item 2"), "<ul>\n<li>item 1</li>\n<li>item 2</li>\n</ul>\n")
+        self.assertEqual(compile_md("* item 1\n\n* item 2"), "<ul>\n<li>item 1</li>\n</ul>\n<ul>\n<li>item 2</li>\n</ul>\n")
+        self.assertEqual(compile_md("  * item 1\n  * item 2"), "<ul>\n<li>item 1</li>\n<li>item 2</li>\n</ul>\n")
+        # list with some items checked
+        self.assertEqual(compile_md("* [x] item 1\n* [ ] item 2"), "<ul>\n<li><input type=\"checkbox\" checked=\"checked\" disabled=\"disabled\" /> item 1</li>\n<li><input type=\"checkbox\" disabled=\"disabled\" /> item 2</li>\n</ul>\n")
+        # list with multiple levels of indentation
+        self.assertEqual(compile_md("* item 1\n  * item 2\n    * item 3\n* item 4"), "<ul>\n<li>item 1\n<ul>\n<li>item 2\n<ul>\n<li>item 3</li>\n</ul>\n</li>\n</ul>\n</li>\n<li>item 4</li>\n</ul>\n")
+        # manually numbered list
+        self.assertEqual(compile_md("1. item 1\n2. item 2"), "<ol>\n<li>item 1</li>\n<li>item 2</li>\n</ol>\n")
+        self.assertEqual(compile_md("4. item 1\n\n1. item 2"), "<ol>\n<li>item 1</li>\n</ol>\n<ol>\n<li>item 2</li>\n</ol>\n")
+        # list with auto-numbered items
+        self.assertEqual(compile_md("# item 1\n# item 2"), "<ol>\n<li>item 1</li>\n<li>item 2</li>\n</ol>\n")
+
+
+
+
+
 
 
 
