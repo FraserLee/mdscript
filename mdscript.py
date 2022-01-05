@@ -1,17 +1,28 @@
-#  # <CLI INVOCATION>
-#  if __name__ == '__main__':
-    #  with open(sys.argv[1], 'r') as source:
-#  
-        #  result = compile_md(source.readlines().join(' '))
-#  
-        #  if len(sys.argv) == 3: # output to file
-            #  with open(sys.argv[2], 'w') as dest:
-                #  for line in result:
-                    #  dest.write(line)
-        #  else:                  # output to stdout
-            #  for line in result:
-                #  print(line, end='')
-#  # </CLI INVOCATION>
+# <CLI INVOCATION>
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        unittest.main()
+        sys.exit(0)
+    elif len(sys.argv) != 2:
+        print("Usage: mdscript.py [file]")
+        sys.exit(1)
+
+
+        if len(sys.argv) == 3: # output to file
+            compile_file(sys.argv[1], sys.argv[2])
+        else:                  # output to stdout
+            compile_file(sys.argv[1])
+# </CLI INVOCATION>
+
+def compile_file(src, dest = None):
+    with open(src, 'r') as src:
+        result = compile_md(' '.join(src.readlines()))
+        if dest:
+            with open(dest, 'w') as dest:
+                dest.write(result)
+        else:
+            print(result)
+
 import re
 
 def compile_md(source):
@@ -187,6 +198,4 @@ class Test(unittest.TestCase):
 
 
 
-if __name__ == '__main__':
-    unittest.main()
 

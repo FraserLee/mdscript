@@ -6,8 +6,11 @@ import os
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
+import mdscript
+
 last_compile_time = -1
 file_path = ''
+dest_path = ''
 
 class Handler(FileSystemEventHandler):
     @staticmethod
@@ -17,7 +20,7 @@ class Handler(FileSystemEventHandler):
             return
         last_compile_time = time.time()
         print('recompiling...', end='')
-        # compile here
+        mdscript.compile_file(file_path, dest_path)
         print('done')
 
 if __name__ == '__main__':
@@ -26,14 +29,16 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # directory of the file to watch
-    global file_path = os.path.abspath(sys.argv[1])
+    file_path = os.path.abspath(sys.argv[1])
     dir_path = os.path.dirname(file_path)
+    dest_path = dir_path + '/' + os.path.basename(file_path) + '.html'
     print(f'Watching {dir_path}\n- press ctrl+c to exit\n')
 
     # recompile any time anything changes in the directory
     event_handler = Handler()
     observer = Observer()
     observer.schedule(event_handler, dir_path, recursive=True)
+    event_handler.on_any_event(None) # trigger initial compile
     observer.start()
     try:
         while True:
