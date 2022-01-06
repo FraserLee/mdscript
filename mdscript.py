@@ -65,6 +65,8 @@ def compile_lines(source):
             width: 100%;
         }
     </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.0.1/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
 '''
@@ -177,6 +179,10 @@ def parse_text(text):
 
     # links
     text = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', text)
+
+    # inline ascii math (processed by mathjax)
+    text = re.sub(r'\$(.+?)\$', r'\(\1\)', text)
+
 
     return text.strip()
 

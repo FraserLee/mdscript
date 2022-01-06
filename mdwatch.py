@@ -40,6 +40,13 @@ if __name__ == '__main__':
     observer.schedule(event_handler, dir_path, recursive=True)
     event_handler.on_any_event(None) # trigger initial compile
     observer.start()
+
+    # DEBUG: while in development, run a second observer to watch the directory of the build stuff
+    observer2 = Observer()
+    observer2.schedule(event_handler, os.path.dirname(os.path.abspath(sys.argv[0])), recursive=True)
+    observer2.start()
+    # END DEBUG
+
     try:
         while True:
             time.sleep(1)
