@@ -71,7 +71,9 @@ def compile_lines(source):
     source += '\n'
     result = ''
     invert_colours = False
-    for data in interline_logic(parse_lines(source)):
+    light_colours = ('dd', 'll')
+    dark_colours = ('l0', 'd0')
+    for i, data in enumerate(interline_logic(parse_lines(source))):
         if type(data) == empty:
             result += '<br>\n'
         elif type(data) == hr:
@@ -96,8 +98,6 @@ def compile_lines(source):
             if data.command == 'colour':
                 b_col = data.args[0] if data.args[0] != '_' else None
                 t_col = data.args[1] if data.args[1] != '_' else None
-                if invert_colours:
-                    b_col, t_col = t_col, b_col
                 result += '</div></div><div class="outerbox"'
                 if b_col is not None: result += f' style="background-color: var(--{b_col});"'
                 result += '><div class="innerbox"'
@@ -106,14 +106,33 @@ def compile_lines(source):
             elif data.command == 'end_colour':
                 result += '</div></div><div class="outerbox"><div class="innerbox">'
             elif data.command == 'invert_colours':
-                invert_colours = not invert_colours
+                if i == 0:
+                    invert_colours = True
+                else:
+                    result += '<p style="color: red">Error: !invert_colours can only be used at the start of the file</p>\n'
+            elif data.command == 'light':
+                if invert_colours:
+                    result += colourbar(dark_colours[0], dark_colours[1])
+                else:
+                    result += colourbar(light_colours[0], light_colours[1])
+            elif data.command == 'dark':
+                if invert_colours:
+                    result += colourbar(light_colours[0], light_colours[1])
+                else:
+                    result += colourbar(dark_colours[0], dark_colours[1])
             else:
                 result += f'<p style="color: red">unknown command: !{data.command}({data.args})</p>\n'
     result += '</div></div></div></body></html>'
 
-    t_col, b_col = 'a0', 'f0'
-    if invert_colours: b_col, t_col = t_col, b_col
+    # higher contrast is better for light on dark than vice versa
+    if invert_colours:
+        t_col, b_col = dark_colours[0], dark_colours[1]
+    else:
+        t_col, b_col = light_colours[0], light_colours[1]
     return header(t_col, b_col) + result
+
+def colourbar(t_col, b_col):
+    return f'</div></div><div class="outerbox" style="background-color: var(--{b_col});"><div class="innerbox" style="color: var(--{t_col});">'
 
 def parse_lines(lines):
     """
@@ -158,7 +177,7 @@ def parse_lines(lines):
             args = [arg.strip() for arg in args]
             result.append(compiler_command(match.group(1), args))
             continue
-        # <PARAGRAPH>
+        # <PARAGRAPH> (default, fall through)
         result.append(paragraph(len(line) - len(line.lstrip()), parse_text(line)))
         # </PARAGRAPH>
     return result
@@ -288,12 +307,25 @@ def header(t_col, b_col):
             font-size: 16px;
             line-height: 1.5;
             overflow-x: hidden;
-            --f0: #30353D;
+
+            --dd: #07080C;
+            --d0: #30353D;
+            --d1: #2E3440;
+            --d2: #3B4252;
+            --d3: #434C5E;
+            --d4: #4C566A;
+
+            --ll: #FAFAFA;
+            --l0: #F0F0F0;
+            --l1: #ECEFF4;
+            --l2: #E5E9F0;
+            --l3: #D8DEE9;
+
             --f1: #5E81AC;
             --f2: #81A1C1;
             --f3: #88C0D0;
             --f4: #8FBCBB;
-            --a0: #F0F0F0;
+
             --a1: #BF616A;
             --a2: #D08770;
             --a3: #EBCB8B;
@@ -337,8 +369,8 @@ def header(t_col, b_col):
             font-size: 1em;
             padding: 0.1em 0.2em;
             border-radius: 0.2em;
-            background-color: var(--f2);
-            color: var(--f0);
+            background-color: var(--d4);
+            color: var(--l0);
         }
     </style>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
