@@ -59,6 +59,10 @@ class compiler_command:
     command: str
     args: list[str] = field(default_factory=list)
 
+@dataclass
+class hr:
+    pass
+
 
 def compile_lines(source):
     """
@@ -70,6 +74,8 @@ def compile_lines(source):
     for data in interline_logic(parse_lines(source)):
         if type(data) == empty:
             result += '<br>\n'
+        elif type(data) == hr:
+            result += '<hr>\n'
         elif type(data) == h:
             result += f'<h{data.level}>{data.text}</h{data.level}>\n'
         elif type(data) == img:
@@ -128,6 +134,11 @@ def parse_lines(lines):
             result.append(h(level, parse_text(match.group(2))))
             continue
         # </HEADING>
+        # <HR>
+        if line.strip() == '---':
+            result.append(hr())
+            continue
+        # </HR>
         # <IMG>
         match = re.match(r'^!\[(.+?)\]\((.+?)\)', line)
         if match:
@@ -189,6 +200,11 @@ def interline_logic(line_tuples):
             if type(lines.peek()) != li:
                 result.append(ul(opening=False))
 
+            continue
+
+        # if a rule comes after an h, insert it inside the h with zero margin
+        if type(lineobj) == hr and type(lines.peek(-2)) == h:
+            result[-1] = h(result[-1].level, result[-1].text + '\n' + '<hr style="margin: 0">')
             continue
 
         result.append(lineobj)
@@ -271,7 +287,7 @@ def header(t_col, b_col):
             width: 100vw;
             font-size: 16px;
             line-height: 1.5;
-            overflow: hidden;
+            overflow-x: hidden;
             --f0: #30353D;
             --f1: #5E81AC;
             --f2: #81A1C1;
@@ -296,7 +312,6 @@ def header(t_col, b_col):
             padding: 0 4em;
             max-width: 48em;
         }
-
 
         h1 {
             font-weight: 100;
