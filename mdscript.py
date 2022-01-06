@@ -24,7 +24,7 @@ def compile_file(src, dest = None):
             print(result)
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class paragraph:
@@ -54,6 +54,10 @@ class li:
 class ul:
     opening: bool
 
+@dataclass
+class compiler_command:
+    command: str
+    args: list[str] = field(default_factory=list)
 
 
 def compile_lines(source):
@@ -61,66 +65,8 @@ def compile_lines(source):
     Compile a markdown file to html.
     """
     source += '\n'
-    result = r'''<!DOCTYPE html>
-<html>
-    <head>
-    <meta charset="utf-8">
-    <title>Markdown</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            font-size: 16px;
-            line-height: 1.5;
-            margin: auto;
-            padding: 4em;
-            max-width: 48em;
-            --f0: #30353D;
-            --f1: #5E81AC;
-            --f2: #81A1C1;
-            --f3: #88C0D0;
-            --f4: #8FBCBB;
-            --a0: #F0F0F0;
-            --a1: #BF616A;
-            --a2: #D08770;
-            --a3: #EBCB8B;
-            --a4: #A3BE8C;
-            --a5: #B47EAD;
-            color: var(--a0);
-            background-color: var(--f0);
-        }
-        h1 {
-            font-weight: 100;
-            font-size: 5em;
-            margin-bottom: 0.5em;
-            text-align: center;
-        }
-        h2 {
-            font-weight: 200;
-            font-size: 3.5em;
-            margin: 0.5em 0;
-        }
-        h3 {
-            font-weight: 500;
-            font-size: 1.5em;
-            margin: 0.5em 0;
-        }
-        img {
-            width: 100%;
-        }
-        code {
-            font-family: monospace;
-            font-size: 1em;
-            padding: 0.1em 0.2em;
-            border-radius: 0.2em;
-            background-color: var(--f2);
-            color: var(--f0);
-        }
-    </style>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.0.1/es5/tex-mml-chtml.js"></script>
-</head>
-<body>
-'''
+    result = ''
+    invert_colours = False
     for data in interline_logic(parse_lines(source)):
         if type(data) == empty:
             result += '<br>\n'
@@ -139,7 +85,29 @@ def compile_lines(source):
                 result += '</ul>\n'
         elif type(data) == paragraph:
             result += f'<p>{data.text}</p>\n'
-    return result + '</body>\n</html>'
+        elif type(data) == compiler_command:
+            # print an error paragraph in red if the command fails
+            if data.command == 'colour':
+                b_col = data.args[0] if data.args[0] != '_' else None
+                t_col = data.args[1] if data.args[1] != '_' else None
+                if invert_colours:
+                    b_col, t_col = t_col, b_col
+                result += '</div></div><div class="outerbox"'
+                if b_col is not None: result += f' style="background-color: var(--{b_col});"'
+                result += '><div class="innerbox"'
+                if t_col is not None: result += f' style="color: var(--{t_col});"'
+                result += '>'
+            elif data.command == 'end_colour':
+                result += '</div></div><div class="outerbox"><div class="innerbox">'
+            elif data.command == 'invert_colours':
+                invert_colours = not invert_colours
+            else:
+                result += f'<p style="color: red">unknown command: !{data.command}({data.args})</p>\n'
+    result += '</div></div></div></body></html>'
+
+    t_col, b_col = 'a0', 'f0'
+    if invert_colours: b_col, t_col = t_col, b_col
+    return header(t_col, b_col) + result
 
 def parse_lines(lines):
     """
@@ -171,6 +139,13 @@ def parse_lines(lines):
         if match:
             indent = len(match.group(1).replace('\t', '    '))
             result.append(li(indent, parse_text(match.group(2))))
+            continue
+        # <COMPILER COMMANDS>
+        match = re.match(r'^!(.+?)(?:\((.*)\))?$', line)
+        if match:
+            args = match.group(2).split(',') if match.group(2) else []
+            args = [arg.strip() for arg in args]
+            result.append(compiler_command(match.group(1), args))
             continue
         # <PARAGRAPH>
         result.append(paragraph(len(line) - len(line.lstrip()), parse_text(line)))
@@ -281,6 +256,85 @@ def parse_text(text):
     text = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', text)
 
     return text.strip()
+
+def header(t_col, b_col):
+    result = r'''<!DOCTYPE html>
+<html>
+    <head>
+    <meta charset="utf-8">
+    <title>Markdown</title>
+    <style>
+       body {
+            font-family: sans-serif;
+            padding: 4em 0;
+            margin: 0;
+            width: 100vw;
+            font-size: 16px;
+            line-height: 1.5;
+            overflow: hidden;
+            --f0: #30353D;
+            --f1: #5E81AC;
+            --f2: #81A1C1;
+            --f3: #88C0D0;
+            --f4: #8FBCBB;
+            --a0: #F0F0F0;
+            --a1: #BF616A;
+            --a2: #D08770;
+            --a3: #EBCB8B;
+            --a4: #A3BE8C;
+            --a5: #B47EAD;
+            '''
+    result += f'background-color: var(--{b_col});color: var(--{t_col});'
+    result += r'''
+        }
+        .outerbox {
+            margin: 0;
+            width: 100vw;
+        }
+        .innerbox {
+            margin: auto;
+            padding: 0 4em;
+            max-width: 48em;
+        }
+
+
+        h1 {
+            font-weight: 100;
+            font-size: 5em;
+            margin-bottom: 0.5em;
+            text-align: center;
+        }
+        h2 {
+            font-weight: 200;
+            font-size: 3.5em;
+            margin: 0.5em 0;
+        }
+        h3 {
+            font-weight: 500;
+            font-size: 1.5em;
+            margin: 0.5em 0;
+        }
+        img {
+            width: 100%;
+        }
+        code {
+            font-family: monospace;
+            font-size: 1em;
+            padding: 0.1em 0.2em;
+            border-radius: 0.2em;
+            background-color: var(--f2);
+            color: var(--f0);
+        }
+    </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.0.1/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="outerbox">
+<div class="innerbox">
+'''
+
+    return result
 
 import unittest
 class Test(unittest.TestCase):
