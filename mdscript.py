@@ -30,8 +30,7 @@ def compile_lines(source):
     Compile a markdown file to html.
     """
     source += '\n'
-    result = r'''
-<!DOCTYPE html>
+    result = r'''<!DOCTYPE html>
 <html>
     <head>
     <meta charset="utf-8">
@@ -63,6 +62,13 @@ def compile_lines(source):
         }
         img {
             width: 100%;
+        }
+        code {
+            font-family: monospace;
+            font-size: 1em;
+            background-color: #eee;
+            padding: 0.1em 0.3em;
+            border-radius: 0.3em;
         }
     </style>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
@@ -164,6 +170,11 @@ def parse_text(text):
     text = text.replace(r'\_', '!UNDERSCORE_COMPILE_TIME_ESCAPE!')
     text = text.replace(r'\~', '!TILDE_COMPILE_TIME_ESCAPE!')
     text = text.replace(r'\`', '!BACKTICK_COMPILE_TIME_ESCAPE!')
+    text = text.replace(r'\$', '!DOLLAR_COMPILE_TIME_ESCAPE!')
+    text = text.replace(r'\%', '!PERCENT_COMPILE_TIME_ESCAPE!')
+
+    # comments from percent to end of line
+    text = re.sub(r'%.*', '', text)
 
     # italics, bold, strikethrough, inline code
     text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
@@ -171,17 +182,20 @@ def parse_text(text):
     text = re.sub(r'~~(.+?)~~', r'<s>\1</s>', text)
     text = re.sub(r'`(.+?)`', r'<code>\1</code>', text)
 
+    # inline latex math (processed by mathjax, very wip)
+    text = re.sub(r'\$(.+?)\$', r'\(\1\)', text)
+
     # replace escaped characters markers
     text = text.replace('!ASTERIX_COMPILE_TIME_ESCAPE!', '*')
     text = text.replace('!UNDERSCORE_COMPILE_TIME_ESCAPE!', '_')
     text = text.replace('!TILDE_COMPILE_TIME_ESCAPE!', '~')
     text = text.replace('!BACKTICK_COMPILE_TIME_ESCAPE!', '`')
+    text = text.replace('!DOLLAR_COMPILE_TIME_ESCAPE!', '$')
+    text = text.replace('!PERCENT_COMPILE_TIME_ESCAPE!', '%')
 
     # links
     text = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', text)
 
-    # inline ascii math (processed by mathjax)
-    text = re.sub(r'\$(.+?)\$', r'\(\1\)', text)
 
 
     return text.strip()
