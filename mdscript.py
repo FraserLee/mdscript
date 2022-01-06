@@ -74,6 +74,19 @@ def compile_lines(source):
             margin: auto;
             padding: 4em;
             max-width: 48em;
+            --f0: #30353D;
+            --f1: #5E81AC;
+            --f2: #81A1C1;
+            --f3: #88C0D0;
+            --f4: #8FBCBB;
+            --a0: #F0F0F0;
+            --a1: #BF616A;
+            --a2: #D08770;
+            --a3: #EBCB8B;
+            --a4: #A3BE8C;
+            --a5: #B47EAD;
+            color: var(--a0);
+            background-color: var(--f0);
         }
         h1 {
             font-weight: 100;
@@ -97,9 +110,10 @@ def compile_lines(source):
         code {
             font-family: monospace;
             font-size: 1em;
-            background-color: #eee;
-            padding: 0.1em 0.3em;
-            border-radius: 0.3em;
+            padding: 0.1em 0.2em;
+            border-radius: 0.2em;
+            background-color: var(--f2);
+            color: var(--f0);
         }
     </style>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
