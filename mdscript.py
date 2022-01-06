@@ -1,22 +1,22 @@
 # <CLI INVOCATION>
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
+    if len(sys.argv) == 1:   # no arguments -> unittest
         unittest.main()
         sys.exit(0)
-    elif len(sys.argv) != 2:
-        print("Usage: mdscript.py [file]")
+    elif len(sys.argv) == 2: # output to stdout
+        compile_file(sys.argv[1])
+        sys.exit(0)
+    elif len(sys.argv) == 3: # output to file
+        compile_file(sys.argv[1], sys.argv[2])
+        sys.exit(0)
+    else:
+        print("Usage: mdscript.py [file] [destination (optional)]")
         sys.exit(1)
-
-
-        if len(sys.argv) == 3: # output to file
-            compile_file(sys.argv[1], sys.argv[2])
-        else:                  # output to stdout
-            compile_file(sys.argv[1])
 # </CLI INVOCATION>
 
 def compile_file(src, dest = None):
     with open(src, 'r') as src:
-        result = compile_md(' '.join(src.readlines()))
+        result = compile_lines(src.readlines())
         if dest:
             with open(dest, 'w') as dest:
                 dest.write(result)
@@ -25,7 +25,7 @@ def compile_file(src, dest = None):
 
 import re
 
-def compile_md(source):
+def compile_lines(source):
     """
     Compile a markdown file to html.
     """
@@ -51,101 +51,132 @@ def compile_md(source):
             margin-bottom: 0.5em;
             text-align: center;
         }
+        h2 {
+            font-weight: 200;
+            font-size: 3.5em;
+            margin: 0.5em 0;
+        }
+        h3 {
+            font-weight: 500;
+            font-size: 1.5em;
+            margin: 0.5em 0;
+        }
+        img {
+            width: 100%;
+        }
     </style>
 </head>
-<body>'''
-    while len(source) > 0:
+<body>
+'''
+    for type, data in interline_logic(parse_lines(source)):
+        if type == 'empty':
+            result += '<br>\n'
+        elif type == 'h':
+            result += f'<{type}{data[0]}>{data[1]}</{type}{data[0]}>\n'
+        elif type == 'img':
+            result += f'<img src="{data[1]}" alt="{data[0]}">\n'
+        elif type == 'p':
+            result += f'<p>{data}</p>\n'
+    return result + '</body>\n</html>'
+
+def parse_lines(lines):
+    """
+    Parse a list of lines into a list of (type, text) tuples.
+    """
+    result = []
+    for line in lines:
         # <EMPTY LINES>
-        if source[0] == '\n':
-            count = len(source)
-            source = source.lstrip('\n')
-            count -= len(source)
-
-            result += '<br>' * count
-
+        if line.strip() == '':
+            result.append(('empty', None))
             continue
+        # <EMPTY LINES>
         # <HEADING>
-        match = re.match(r'^(#+) ([^\n]+)\n', source)
+        match = re.match(r'^(#+) ([^\n]+)\n', line)
         if match:
             level = len(match.group(1))
             level = min(level, 6)
-            result += f'<h{level}>{clean_text(match.group(2))}</h{level}>\n'
-            source = source[match.end():]
+            result.append(('h', (str(level), parse_text(match.group(2)))))
             continue
         # </HEADING>
-
-        # <PARAGRAPH>
-        match = re.match(r'^([^\n]+)\n', source)
+        # <IMG>
+        match = re.match(r'^!\[(.+?)\]\((.+?)\)', line)
         if match:
-            result += '<p>' + clean_text(match.group(1)) + '</p>\n'
-            source = source[match.end():]
+            result.append(('img', (parse_text(match.group(1)), match.group(2))))
+            continue
+        # </IMG>
+        # <PARAGRAPH>
+        result.append(('p', parse_text(line.rstrip())))
         # </PARAGRAPH>
+    return result
 
-        #  # <LIST>
-        #  match = re.match(r'^(\*|\-)[^(\\n)]+\\n', source)
-        #  if match:
-            #  result += '<li>' + match.group(1) + '</li>'
-            #  source = source[match.end():]
-        #  # </LIST>
-#  
-        #  # <BLOCKQUOTE>
-        #  match = re.match(r'^> [^(\\n)]+\\n', source)
-        #  if match:
-            #  result += '<blockquote>' + match.group(1) + '</blockquote>'
-            #  source = source[match.end():]
-        #  # </BLOCKQUOTE>
-#  
-        #  # <CODE>
-        #  match = re.match(r'^```[^(\\n)]+\\n', source)
-        #  if match:
-            #  result += '<code>' + match.group(1) + '</code>'
-            #  source = source[match.end():]
-        #  # </CODE>
-#  
-        #  # <IMAGE>
-        #  match = re.match(r'^!\[[^(\\n)]+\\n', source)
-        #  if match:
-            #  result += '<img src="' + match.group(1) + '">'
-            #  source = source[match.end():]
-        #  # </IMAGE>
-#  
-        #  # <LINK>
-        #  match = re.match(r'^\[([^(\\n)]+)\]\(([^(\\n)]+)\)\\n', source)
-        #  if match:
-            #  result += '<a href="' + match.group(2) + '">' + match.group(1) + '</a>'
-            #  source = source[match.end():]
-        #  # </LINK>
-#  
-        #  # <ASCIIMATH (call mathjax)>
-        #  match = re.match(r'^\$\$[^(\\n)]+\\n', source)
-        #  if match:
-            #  result += '<script type="math/tex; mode=display">' + match.group(1) + '</script>'
-            #  source = source[match.end():]
-        #  # </ASCIIMATH>
-#  
-        #  # <LATEX (call mathjax)>
-        #  match = re.match(r'^\$[^(\\n)]+\\n', source)
-        #  if match:
-            #  result += '<script type="math/tex; mode=display">' + match.group(1) + '</script>'
-            #  source = source[match.end():]
-        #  # </LATEX>
+def interline_logic(line_tuples):
+    """
+    takes a list of (type, text) tuples and returns a list of (type, text) tuples
+
+    This function is responsible for handling the logic of merging adjacent
+    paragraphs, removing *some* empty lines, other context dependent stuff.
+    """
+    result = []
+    lines = linelist(line_tuples)
+    while (lineobj := lines.pop())[0] != None:
+        if lineobj[0] == 'p' and lines.peek(-2)[0] == 'p':
+            result[-1] = ('p', result[-1][1] + ' ' + lineobj[1])
+        elif lineobj[0] == 'empty' and lines.peek(-2)[0] != 'empty':
+            pass
         else:
-            return result + "<unparseable>" + source + "</unparseable>"
-    return result + '\n</body>\n</html>'
+            result.append(lineobj)
+    return result
 
-def clean_text(text):
+class linelist:
+    def __init__(self, lines):
+        self.lines = lines
+        self.index = 0
+
+    def peek(self, n = 0): # n = 0 -> peek at current line, supports negative n
+        if self.index + n < len(self.lines) and self.index + n >= 0:
+            return self.lines[self.index + n]
+        else:
+            return (None, None)
+
+    def pop(self):
+        if self.index < len(self.lines):
+            result = self.lines[self.index]
+            self.index += 1
+            return result
+        else:
+            return (None, None)
+
+def parse_text(text):
     """
     Clean text from markdown.
     """
+    # replace characters with html equivalents
     text = text.replace('&', '&amp;')
     text = text.replace('<', '&lt;')
     text = text.replace('>', '&gt;')
     text = text.replace('"', '&quot;')
     text = text.replace("'", '&#39;')
 
-    # italics - replace every alternate pair of * with <em>
-    text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
-    text = re.sub(r'\*([^*]+)\*', r'<i>\1</i>', text)
+    # temporarily replace escaped characters markers
+    text = text.replace(r'\*', '!ASTERIX_COMPILE_TIME_ESCAPE!')
+    text = text.replace(r'\_', '!UNDERSCORE_COMPILE_TIME_ESCAPE!')
+    text = text.replace(r'\~', '!TILDE_COMPILE_TIME_ESCAPE!')
+    text = text.replace(r'\`', '!BACKTICK_COMPILE_TIME_ESCAPE!')
+
+    # italics, bold, strikethrough, inline code
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    text = re.sub(r'\*(.+?)\*', r'<i>\1</i>', text)
+    text = re.sub(r'~~(.+?)~~', r'<s>\1</s>', text)
+    text = re.sub(r'`(.+?)`', r'<code>\1</code>', text)
+
+    # replace escaped characters markers
+    text = text.replace('!ASTERIX_COMPILE_TIME_ESCAPE!', '*')
+    text = text.replace('!UNDERSCORE_COMPILE_TIME_ESCAPE!', '_')
+    text = text.replace('!TILDE_COMPILE_TIME_ESCAPE!', '~')
+    text = text.replace('!BACKTICK_COMPILE_TIME_ESCAPE!', '`')
+
+    # links
+    text = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', text)
 
     return text.strip()
 
@@ -153,67 +184,4 @@ import unittest
 class Test(unittest.TestCase):
     def test_compile_paragraphs(self):
         self.assertEqual(compile_md("Paragraph"), "<p>Paragraph</p>\n")
-        self.assertEqual(compile_md("Paragraph\n\n"), "<p>Paragraph</p>\n")
-        self.assertEqual(compile_md("  \t multiple words \t and space   and stuff"), "<p>multiple words \t and space   and stuff</p>\n")
-        self.assertEqual(compile_md("Paragraph\n\nParagraph"), "<p>Paragraph</p>\n<p>Paragraph</p>\n")
-        self.assertEqual(compile_md("Paragraph\n\nParagraph\n\nParagraph"), "<p>Paragraph</p>\n<p>Paragraph</p>\n<p>Paragraph</p>\n")
-        self.assertEqual(compile_md("symbols & j@%k \' \" >_< "), "<p>symbols &amp; j@%k &#39; &quot; &gt;_&lt;</p>\n")
-
-    def test_compile_headings(self):
-        self.assertEqual(compile_md("# Heading"), "<h1>Heading</h1>\n")
-        self.assertEqual(compile_md("# Heading\n\n"), "<h1>Heading</h1>\n")
-        self.assertEqual(compile_md("## Heading\n"), "<h2>Heading</h2>\n")
-        self.assertEqual(compile_md("### Heading\n"), "<h3>Heading</h3>\n")
-        self.assertEqual(compile_md("### arbitrary text"), "<h3>arbitrary text</h3>\n")
-        self.assertEqual(compile_md("###   \t   space stuff    \t   \t    "), "<h3>space stuff</h3>\n")
-        self.assertEqual(compile_md("###### symbols & j@%k \' \" >_< "), "<h6>symbols &amp; j@%k &#39; &quot; &gt;_&lt;</h6>\n")
-        self.assertEqual(compile_md("####### too many tags"), "<h6>too many tags</h6>\n")
-        self.assertEqual(compile_md("# Heading\nParagraph"), "<h1>Heading</h1>\n<p>Paragraph</p>\n")
-        self.assertEqual(compile_md("# Heading\n\nParagraph\n\n"), "<h1>Heading</h1>\n<p>Paragraph</p>\n")
-        self.assertEqual(compile_md("# Heading\nParagraph\n\n# Heading"), "<h1>Heading</h1>\n<p>Paragraph</p>\n<h1>Heading</h1>\n")
-        self.assertEqual(compile_md("not a # heading"), "<p>not a # heading</p>\n")
-        self.assertEqual(compile_md("#also not a heading"), "<p>#also not a heading</p>\n")
-
-    def test_compile_breaks(self):
-        # usually, one \n is absorbed and a single element is returned from
-        # multiple lines (inserting a ' ' in the gap). Two \n marks a </p><p>,
-        # and n>=3 marks n-2 <br>s.
-        # (sometimes the difference is glaringly obvious (like if you have two
-        # headings of different levels, or the start of a code-block or a
-        # block-quote), in which case one \n separates the elements and n>=2
-        # marks n-1 <br>s)
-
-        self.assertEqual(compile_md(""), "")
-        self.assertEqual(compile_md("\n"), "")
-        self.assertEqual(compile_md("\n\n"), "")
-        self.assertEqual(compile_md("\n\n\n\n\n\n\n"), "") # removed at the start irregardless
-
-        self.assertEqual(compile_md("one two\nthree four"), "<p>one two three four</p>")
-        self.assertEqual(compile_md("one two\n\nthree four"), "<p>one two</p><p>three four</p>")
-        self.assertEqual(compile_md("one two\n\n\nthree four"), "<p>one two</p><br><p>three four</p>")
-        self.assertEqual(compile_md("one two\n\n\n\n\n\n\nthree four"), "<p>one two</p><br><br><br><br><br><br><br><p>three four</p>")
-
-        self.assertEqual(compile_md("## heading\nparagraph"), "<h2>heading paragraph</p>")
-        self.assertEqual(compile_md("## heading\n\nparagraph"), "<h2>heading</h2><p>paragraph</p>")
-        self.assertEqual(compile_md("## heading\n\n\nparagraph"), "<h2>heading</h2><br><p>paragraph</p>")
-
-        self.assertEqual(compile_md("## heading\n# other heading"), "<h2>heading</h2><h1>other heading</h1>")
-
-
-    def test_compile_lists(self):
-        self.assertEqual(compile_md("* item 1"), "<ul>\n<li>item 1</li>\n</ul>\n")
-        self.assertEqual(compile_md("* symbol & j@%k \' \" >_< "), "<ul>\n<li>symbol &amp; j@%k &#39; &quot; &gt;_&lt;</li>\n</ul>\n")
-        self.assertEqual(compile_md("- item 1\n- item 2"), "<ul>\n<li>item 1</li>\n<li>item 2</li>\n</ul>\n")
-        self.assertEqual(compile_md("* item 1\n\n* item 2"), "<ul>\n<li>item 1</li>\n</ul>\n<ul>\n<li>item 2</li>\n</ul>\n")
-        self.assertEqual(compile_md("  * item 1\n  * item 2"), "<ul>\n<li>item 1</li>\n<li>item 2</li>\n</ul>\n")
-        # list with some items checked
-        self.assertEqual(compile_md("* [x] item 1\n* [ ] item 2"), "<ul>\n<li><input type=\"checkbox\" checked=\"checked\" disabled=\"disabled\" /> item 1</li>\n<li><input type=\"checkbox\" disabled=\"disabled\" /> item 2</li>\n</ul>\n")
-        # list with multiple levels of indentation
-        self.assertEqual(compile_md("* item 1\n  * item 2\n    * item 3\n* item 4"), "<ul>\n<li>item 1\n<ul>\n<li>item 2\n<ul>\n<li>item 3</li>\n</ul>\n</li>\n</ul>\n</li>\n<li>item 4</li>\n</ul>\n")
-        # manually numbered list
-        self.assertEqual(compile_md("1. item 1\n2. item 2"), "<ol>\n<li>item 1</li>\n<li>item 2</li>\n</ol>\n")
-        self.assertEqual(compile_md("4. item 1\n\n1. item 2"), "<ol>\n<li>item 1</li>\n</ol>\n<ol>\n<li>item 2</li>\n</ol>\n")
-        # list with auto-numbered items
-        self.assertEqual(compile_md("# item 1\n# item 2"), "<ol>\n<li>item 1</li>\n<li>item 2</li>\n</ol>\n")
-
 
