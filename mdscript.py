@@ -24,6 +24,37 @@ def compile_file(src, dest = None):
             print(result)
 
 import re
+from dataclasses import dataclass
+
+@dataclass
+class paragraph:
+    indent: int
+    text: str
+
+@dataclass
+class h:
+    level: int
+    text: str
+
+@dataclass
+class img:
+    alt: str
+    src: str
+
+@dataclass
+class empty:
+    pass
+
+@dataclass
+class li:
+    indent: int
+    text: str
+
+@dataclass
+class ul:
+    opening: bool
+
+
 
 def compile_lines(source):
     """
@@ -76,15 +107,24 @@ def compile_lines(source):
 </head>
 <body>
 '''
-    for type, data in interline_logic(parse_lines(source)):
-        if type == 'empty':
+    for data in interline_logic(parse_lines(source)):
+        if type(data) == empty:
             result += '<br>\n'
-        elif type == 'h':
-            result += f'<{type}{data[0]}>{data[1]}</{type}{data[0]}>\n'
-        elif type == 'img':
-            result += f'<img src="{data[1]}" alt="{data[0]}">\n'
-        elif type == 'p':
-            result += f'<p>{data}</p>\n'
+        elif type(data) == h:
+            result += f'<h{data.level}>{data.text}</h{data.level}>\n'
+        elif type(data) == img:
+            result += f'<img src="{data.src}" alt="{data.alt}">\n'
+        elif type(data) == li:
+            # janky af to use margin-left instead of actually nesting lists, 
+            # but it shockingly looks kinda better and offers you more control
+            result += f'<li style="margin-left: {data.indent/2.0}em">{data.text}</li>\n'
+        elif type(data) == ul:
+            if data.opening:
+                result += '<ul>\n'
+            else:
+                result += '</ul>\n'
+        elif type(data) == paragraph:
+            result += f'<p>{data.text}</p>\n'
     return result + '</body>\n</html>'
 
 def parse_lines(lines):
@@ -95,7 +135,7 @@ def parse_lines(lines):
     for line in lines:
         # <EMPTY LINES>
         if line.strip() == '':
-            result.append(('empty', None))
+            result.append(empty())
             continue
         # <EMPTY LINES>
         # <HEADING>
@@ -103,17 +143,23 @@ def parse_lines(lines):
         if match:
             level = len(match.group(1))
             level = min(level, 6)
-            result.append(('h', (str(level), parse_text(match.group(2)))))
+            result.append(h(level, parse_text(match.group(2))))
             continue
         # </HEADING>
         # <IMG>
         match = re.match(r'^!\[(.+?)\]\((.+?)\)', line)
         if match:
-            result.append(('img', (parse_text(match.group(1)), match.group(2))))
+            result.append(img(match.group(1), match.group(2)))
             continue
         # </IMG>
+        # <LIST>
+        match = re.match(r'^([ \t]*)(?:\-) (.+)', line)
+        if match:
+            indent = len(match.group(1).replace('\t', '    '))
+            result.append(li(indent, parse_text(match.group(2))))
+            continue
         # <PARAGRAPH>
-        result.append(('p', parse_text(line.rstrip())))
+        result.append(paragraph(len(line) - len(line.lstrip()), parse_text(line)))
         # </PARAGRAPH>
     return result
 
@@ -126,13 +172,37 @@ def interline_logic(line_tuples):
     """
     result = []
     lines = linelist(line_tuples)
-    while (lineobj := lines.pop())[0] != None:
-        if lineobj[0] == 'p' and lines.peek(-2)[0] == 'p':
-            result[-1] = ('p', result[-1][1] + ' ' + lineobj[1])
-        elif lineobj[0] == 'empty' and lines.peek(-2)[0] != 'empty':
-            pass
-        else:
+    while (lineobj := lines.pop()) != None:
+        # merge paragraphs
+        if type(lineobj) == paragraph and type(lines.peek(-2)) == paragraph:
+            if lineobj.indent == lines.peek(-2).indent:
+                result[-1] = paragraph(lineobj.indent,
+                               result[-1].text + ' ' + lineobj.text)
+                continue
+
+        # remove first empty line
+        if type(lineobj) == empty and type(lines.peek(-2)) != empty:
+            continue
+
+        # list logic
+        if type(lineobj) == li:
+            # if this is the first item, open a list
+            if type(lines.peek(-2)) != li:
+                result.append(ul(opening=True))
+
+            # keep appending while the next line is a paragraph with the same indent
+            while type(lines.peek()) == paragraph and lineobj.indent + 2 == lines.peek().indent:
+                lineobj.text += ' ' + lines.pop().text
+
             result.append(lineobj)
+
+            # if the next line isn't a list item, close the list
+            if type(lines.peek()) != li:
+                result.append(ul(opening=False))
+
+            continue
+
+        result.append(lineobj)
     return result
 
 class linelist:
@@ -144,7 +214,7 @@ class linelist:
         if self.index + n < len(self.lines) and self.index + n >= 0:
             return self.lines[self.index + n]
         else:
-            return (None, None)
+            return None
 
     def pop(self):
         if self.index < len(self.lines):
@@ -152,7 +222,7 @@ class linelist:
             self.index += 1
             return result
         else:
-            return (None, None)
+            return None
 
 def parse_text(text):
     """
@@ -195,8 +265,6 @@ def parse_text(text):
 
     # links
     text = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', text)
-
-
 
     return text.strip()
 
