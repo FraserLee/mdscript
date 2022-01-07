@@ -276,8 +276,12 @@ def parse_text(text):
     text = re.sub(r'~~(.+?)~~', r'<s>\1</s>', text)
     text = re.sub(r'`(.+?)`', r'<code>\1</code>', text)
 
-    # inline latex math (processed by mathjax, very wip)
+    # line-mode latex math (processed by mathjax, very wip) 
+    text = re.sub(r'\$\$(.+?)\$\$', r'\[\1\]', text)
+
+    # inline latex math (I'll compute this all at compile time later)
     text = re.sub(r'\$(.+?)\$', r'\(\1\)', text)
+
 
     # replace escaped characters markers
     text = text.replace('!ASTERIX_COMPILE_TIME_ESCAPE!', '*')
@@ -341,7 +345,7 @@ def header(t_col, b_col):
         }
         .innerbox {
             margin: auto;
-            padding: 0 4em;
+            padding: 0.5em 4em;
             max-width: 48em;
         }
 
@@ -371,6 +375,13 @@ def header(t_col, b_col):
             border-radius: 0.2em;
             background-color: var(--d4);
             color: var(--l0);
+        }
+        a:link {
+            color: var(--f2);
+        }
+
+        a:visited {
+            color: var(--f1);
         }
     </style>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
