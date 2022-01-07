@@ -4,6 +4,8 @@ use std::{
     process::exit,
 };
 
+mod compiler; use compiler::*;
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
@@ -37,8 +39,4 @@ fn read(path: &str) -> String {
     let mut contents = String::new();
     file.unwrap().read_to_string(&mut contents).unwrap();
     contents
-}
-
-fn compile_str(input: &str) -> String {
-    "Compiling: ".to_string() + &input[0..10] + "..."
 }
