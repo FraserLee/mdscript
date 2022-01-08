@@ -6,6 +6,7 @@ use std::{
 
 mod compiler; use compiler::*;
 mod html;
+mod compiler_line;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
