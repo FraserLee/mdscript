@@ -1,4 +1,4 @@
-use crate::html;
+use crate::{html, compiler_line};
 
 pub fn compile_str(in_text: String) -> String {
     // for each in text.lines, make a ELEMENT::Text containing it
@@ -6,6 +6,9 @@ pub fn compile_str(in_text: String) -> String {
 
     // pass 1 - fence off all multiline codeblocks
     fence_codeblocks(&mut elements);
+
+    // pass 2 - convert heading elements to h1, h2, etc.
+    convert_headings(&mut elements);
 
     html::wrap_html(
         elements.into_iter().map(|e| e.to_str()).collect::<Vec<_>>().join("\n")
@@ -15,13 +18,15 @@ pub fn compile_str(in_text: String) -> String {
 enum ELEMENT {
     Text(String),
     CodeBlock(String),
+    Header{level: usize, text: String},
 }
 
 impl ELEMENT {
     fn to_str(self) -> String {
         match self {
             ELEMENT::Text(text) => text,
-            ELEMENT::CodeBlock(code) => "<code>\n".to_string() + &code + "\n</code>",
+            ELEMENT::CodeBlock(code) => format!("<code>\n{}\n</code>", code),
+            ELEMENT::Header{level, text} => format!("<h{}>{}</h{}>", level, text, level),
         }
     }
 }
@@ -57,3 +62,16 @@ fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
     }
 }
 
+fn convert_headings(elements: &mut Vec<ELEMENT>) {
+    for i in 0..elements.len() {
+        if let ELEMENT::Text(text) = &elements[i] {
+            if text.starts_with("#") {
+                let mut level = text.len();
+                let t = text.trim_start_matches('#');
+                level -= t.len();
+                level = level.min(6);
+                elements[i] = ELEMENT::Header{level, text: t.trim_start().to_string()};
+            }
+        }
+    }
+}
