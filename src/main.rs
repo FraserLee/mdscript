@@ -5,12 +5,13 @@ use std::{
 };
 
 mod compiler; use compiler::*;
+mod html;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() == 2 { // 1 argument -> output to stdout
-        println!("{}", compile_str(&read(&args[1])));
+        println!("{}", compile_str(read(&args[1])));
         exit(0);
     }
 
@@ -21,7 +22,7 @@ fn main() {
             eprintln!("Could not write to file {}", dest);
             exit(1);
         }
-        file.unwrap().write_all(compile_str(&read(&args[1])).as_bytes()).unwrap();
+        file.unwrap().write_all(compile_str(read(&args[1])).as_bytes()).unwrap();
         exit(0);
     } 
 
