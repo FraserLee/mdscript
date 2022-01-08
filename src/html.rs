@@ -37,9 +37,9 @@ pub fn wrap_html(in_text: String) -> String {
             --a3: #EBCB8B;
             --a4: #A3BE8C;
             --a5: #B47EAD;
-            '''
-    result += f'background-color: var(--{b_col});color: var(--{t_col});'
-    result += r'''
+
+            background-color: var(--ll);
+            color: var(--dd);
         }
         .outerbox {
             margin: 0;

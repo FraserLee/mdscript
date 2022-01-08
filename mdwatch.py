@@ -22,7 +22,7 @@ class Handler(FileSystemEventHandler):
     def on_any_event(event):
         # super simple debounce
         global last_compile_time
-        if time.time() - last_compile_time < 0.5:
+        if time.time() - last_compile_time < 1:
             return
         last_compile_time = time.time()
 

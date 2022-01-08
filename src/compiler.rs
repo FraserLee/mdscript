@@ -10,6 +10,11 @@ pub fn compile_str(in_text: String) -> String {
     // pass 2 - convert heading elements to h1, h2, etc.
     convert_headings(&mut elements);
 
+    // convert all text to paragraphs
+    elements = elements.into_iter().map(|e| { if let ELEMENT::Text(s) = e { 
+        ELEMENT::Paragraph(compiler_line::parse_text(s)) } else { e } }).collect();
+
+
     html::wrap_html(
         elements.into_iter().map(|e| e.to_str()).collect::<Vec<_>>().join("\n")
     )
@@ -19,6 +24,7 @@ enum ELEMENT {
     Text(String),
     CodeBlock(String),
     Header{level: usize, text: String},
+    Paragraph(String),
 }
 
 impl ELEMENT {
@@ -27,6 +33,7 @@ impl ELEMENT {
             ELEMENT::Text(text) => text,
             ELEMENT::CodeBlock(code) => format!("<code>\n{}\n</code>", code),
             ELEMENT::Header{level, text} => format!("<h{}>{}</h{}>", level, text, level),
+            ELEMENT::Paragraph(text) => format!("<p>{}</p>", text),
         }
     }
 }
