@@ -26,7 +26,7 @@ pub fn compile_str(in_text: String) -> String {
     // pass 4 - pull out all paragraphs
     parse_paragraphs(&mut elements);
 
-    // pass 4 - pull out all breaks
+    // pass 5 - pull out all breaks
     parse_br(&mut elements);
 
 
@@ -45,7 +45,7 @@ enum ELEMENT {
     Header{level: usize, text: String},
     Paragraph(String),
     HorizontalRule,
-    Break,
+    Break(usize),
 }
 
 impl ELEMENT {
@@ -63,7 +63,7 @@ impl ELEMENT {
             ELEMENT::Paragraph(text) => format!("<p>{}</p>", compiler_line::parse_text(text)),
 
             ELEMENT::HorizontalRule => "<hr>".to_string(),
-            ELEMENT::Break          => "<br>".to_string(),
+            ELEMENT::Break(count)   => "<br>".repeat(count),
         }
     }
 }
@@ -136,48 +136,53 @@ fn parse_hr(elements: &mut Vec<ELEMENT>) {
     }
 }
 
-fn parse_br(elements: &mut Vec<ELEMENT>) {
-    let mut i = 0;
-    while i < elements.len() {
-        if let ELEMENT::Empty = &elements[i] {
-            elements[i] = ELEMENT::Break;
-        }
-        i += 1;
-    }
-}
-
 fn parse_paragraphs(elements: &mut Vec<ELEMENT>) {
     let mut i = 0;
     while i < elements.len() {
-        if let ELEMENT::Text(text, indent) = &elements[i] {
+        if let ELEMENT::Text(_, ei_indent) = &elements[i] {
             let mut j = i+1;
             while j < elements.len(){
-                if let ELEMENT::Text(_, e_i) = &elements[j] {
-                    if *e_i < *indent { break; }
+                // keep counting till we either find a line that's not text, or
+                // a line that's indented less than the current line
+                if let ELEMENT::Text(_, ej_indent) = &elements[j] {
+                    if *ej_indent < *ei_indent { break; }
                 } else { break; }
 
                 j += 1;
             }
-            
-            
-            let mut tinit = text.to_string();
-            let iii = indent.clone();
-            tinit = elements.drain(i+1..j).into_iter().fold(
-                tinit,
-                |mut acc, e| {
+            // pop (drain) all lines in the paragraph and unify them
+            // (there's gotta be a more rust-ish way to do it)
+            let indent = ei_indent.clone();
+            elements[i] = 
+                ELEMENT::Paragraph(elements.drain(i..j).into_iter()
+                .map(|e| {
                     // always true, but I think this is the best way to cast in rust
-                    if let ELEMENT::Text(e_t, e_i) = e { 
-                        acc.push_str(&" ".repeat(e_i-iii));
-                        acc.push_str(&e_t);
-                    }
-                    acc
-                }
-            );
-            elements[i] = ELEMENT::Paragraph(tinit);
+                    if let ELEMENT::Text(t, i) = e {
+                        format!("{}{}", " ".repeat(i-indent), t)
+                    } else { panic!("shouldn't be reachable") }
+                }).collect::<Vec<_>>().join(""));
         }
         i += 1;
     }
 }
 
-
+fn parse_br(elements: &mut Vec<ELEMENT>) {
+    let mut i = 0;
+    while i < elements.len() {
+        if let ELEMENT::Empty = &elements[i] {
+            let mut count = 0;
+            // only start counting AFTER the first empty line 
+            // to support the ...</p><p>... case
+            while i+1 < elements.len(){
+                // I wish I knew enough rust to do this better, there's definitely a simpler way
+                if let ELEMENT::Empty = &elements[i+1] { 
+                    count += 1;
+                    elements.remove(i+1);
+                } else { break; }
+            }
+            elements[i] = ELEMENT::Break(count);
+        }
+        i += 1;
+    }
+}
 
