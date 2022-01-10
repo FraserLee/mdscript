@@ -335,8 +335,9 @@ def header(t_col, b_col):
             --a3: #EBCB8B;
             --a4: #A3BE8C;
             --a5: #B47EAD;
+
             '''
-    result += f'background-color: var(--{b_col});color: var(--{t_col});'
+    result += f'background-color: var(--{b_col});\n            color: var(--{t_col});'
     result += r'''
         }
         .outerbox {
