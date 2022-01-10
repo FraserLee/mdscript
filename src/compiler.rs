@@ -8,7 +8,10 @@ pub fn compile_str(in_text: String) -> String {
     fence_codeblocks(&mut elements);
 
     // pass 2 - convert heading elements to h1, h2, etc.
-    convert_headings(&mut elements);
+    parse_headings(&mut elements);
+
+    // pass 3 - pull out all horizontal rules
+    parse_hr(&mut elements);
 
     // convert all text to paragraphs
     elements = elements.into_iter().map(|e| { if let ELEMENT::Text(s) = e { 
@@ -16,7 +19,7 @@ pub fn compile_str(in_text: String) -> String {
 
 
     html::wrap_html(
-        elements.into_iter().map(|e| e.to_str()).collect::<Vec<_>>().join("\n")
+        elements.into_iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n")
     )
 }
 
@@ -25,15 +28,22 @@ enum ELEMENT {
     CodeBlock(String),
     Header{level: usize, text: String},
     Paragraph(String),
+    HorizontalRule,
 }
 
 impl ELEMENT {
-    fn to_str(self) -> String {
+    fn to_string(self) -> String {
         match self {
             ELEMENT::Text(text) => text,
+
             ELEMENT::CodeBlock(code) => format!("<code>\n{}\n</code>", code),
-            ELEMENT::Header{level, text} => format!("<h{}>{}</h{}>", level, text, level),
-            ELEMENT::Paragraph(text) => format!("<p>{}</p>", text),
+
+            ELEMENT::Header{level, text} => 
+                format!("<h{}>{}</h{}>", level, compiler_line::parse_text(text), level),
+
+            ELEMENT::Paragraph(text) => format!("<p>{}</p>", compiler_line::parse_text(text)),
+
+            ELEMENT::HorizontalRule => "<hr>".to_string(),
         }
     }
 }
@@ -55,7 +65,7 @@ fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
                     // codeblock element at codeblock_start
                     elements[codeblock_start] = 
                         ELEMENT::CodeBlock(elements.drain(codeblock_start+1..i).into_iter()
-                        .map(|e| e.to_str()).collect::<Vec<_>>().join("\n"));
+                        .map(|e| e.to_string()).collect::<Vec<_>>().join("\n"));
 
                     // then reset i and remove the closing ```
                     i = codeblock_start;
@@ -69,7 +79,7 @@ fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
     }
 }
 
-fn convert_headings(elements: &mut Vec<ELEMENT>) {
+fn parse_headings(elements: &mut Vec<ELEMENT>) {
     for i in 0..elements.len() {
         if let ELEMENT::Text(text) = &elements[i] {
             if text.starts_with("#") {
@@ -82,3 +92,22 @@ fn convert_headings(elements: &mut Vec<ELEMENT>) {
         }
     }
 }
+
+
+fn parse_hr(elements: &mut Vec<ELEMENT>) {
+    let mut i = 0;
+    while i < elements.len() {
+        if let ELEMENT::Text(text) = &elements[i] {
+            if text.trim() == "---" {
+                elements[i] = ELEMENT::HorizontalRule;
+            }
+        }
+        i += 1;
+    }
+}
+
+
+
+
+
+
