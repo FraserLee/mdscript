@@ -77,6 +77,8 @@ pub fn wrap_html(in_text: String) -> String {
             border-radius: 0.2em;
             background-color: var(--d4);
             color: var(--l0);
+            display: block;
+            white-space: pre-wrap;
         }
         a:link {
             color: var(--f2);
