@@ -1,21 +1,7 @@
 @dataclass
-class paragraph:
-    indent: int
-    text: str
-
-@dataclass
 class img:
     alt: str
     src: str
-
-@dataclass
-class empty:
-    pass
-
-@dataclass
-class li:
-    indent: int
-    text: str
 
 @dataclass
 class ul:
@@ -132,17 +118,6 @@ def interline_logic(line_tuples):
     result = []
     lines = linelist(line_tuples)
     while (lineobj := lines.pop()) != None:
-        # merge paragraphs
-        if type(lineobj) == paragraph and type(lines.peek(-2)) == paragraph:
-            if lineobj.indent == lines.peek(-2).indent:
-                result[-1] = paragraph(lineobj.indent,
-                               result[-1].text + ' ' + lineobj.text)
-                continue
-
-        # remove first empty line
-        if type(lineobj) == empty and type(lines.peek(-2)) != empty:
-            continue
-
         # list logic
         if type(lineobj) == li:
             # if this is the first item, open a list

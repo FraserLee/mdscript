@@ -1,4 +1,5 @@
 use crate::{html, compiler_line};
+use regex::Regex;
 
 pub fn compile_str(in_text: String) -> String {
     // for each in text.lines, make a ELEMENT::Text containing it
@@ -23,6 +24,12 @@ pub fn compile_str(in_text: String) -> String {
     // pass 3 - pull out all horizontal rules
     parse_hr(&mut elements);
 
+    // pass 4 - pull out all list items
+    parse_list_items(&mut elements);
+
+    // pass 4b - create list contexts around list items
+    // TODO
+
     // pass 4 - pull out all paragraphs
     parse_paragraphs(&mut elements);
 
@@ -46,6 +53,7 @@ enum ELEMENT {
     Paragraph(String),
     HorizontalRule,
     Break(usize),
+    ListItem{indent: usize, text: String},
 }
 
 impl ELEMENT {
@@ -64,6 +72,12 @@ impl ELEMENT {
 
             ELEMENT::HorizontalRule => "<hr>".to_string(),
             ELEMENT::Break(count)   => "<br>".repeat(count),
+
+            // janky to use margin-left instead of actually nesting lists, 
+            // but it shockingly looks kinda better and offers you more control
+            ELEMENT::ListItem{indent, text} => 
+                format!("<li style=\"margin-left: {}em\">{}</li>", 
+                    indent as f32 / 2.0, compiler_line::parse_text(text))
         }
     }
 }
@@ -122,7 +136,6 @@ fn parse_headings(elements: &mut Vec<ELEMENT>) {
         }
     }
 }
-
 
 fn parse_hr(elements: &mut Vec<ELEMENT>) {
     let mut i = 0;
@@ -183,6 +196,18 @@ fn parse_br(elements: &mut Vec<ELEMENT>) {
             elements[i] = ELEMENT::Break(count);
         }
         i += 1;
+    }
+}
+
+fn parse_list_items(elements: &mut Vec<ELEMENT>) {
+    // matches "- item", "* item", "number. item"
+    let re = Regex::new(r"^(?:\-|\*|\d+\.) (.*)").unwrap();
+    for e in elements.iter_mut() {
+        if let ELEMENT::Text(text, indent) = e {
+            if let Some(caps) = re.captures(text) {
+                *e = ELEMENT::ListItem{indent: *indent, text: caps[1].to_string()};
+            }
+        }
     }
 }
 
