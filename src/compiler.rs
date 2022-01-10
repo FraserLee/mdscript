@@ -151,17 +151,21 @@ fn parse_paragraphs(elements: &mut Vec<ELEMENT>) {
     while i < elements.len() {
         if let ELEMENT::Text(text, indent) = &elements[i] {
             let mut content = text.to_string();
-            while i+1 < elements.len(){
-                if let ELEMENT::Text(text_extend, indent_extend) = &elements[i+1] {
-                    if *indent_extend < *indent {
-                        break;
-                    } else {
-                        content.push_str(&" ".repeat(*indent_extend - *indent));
-                        content.push_str(text_extend);
-                        elements.remove(i+1);
-                    }
+            let mut j = i+1;
+            while j < elements.len(){
+                if let ELEMENT::Text(e_t, e_i) = &elements[j] {
+                    if *e_i <= *indent { break; }
                 } else { break; }
+
+                j += 1;
             }
+            elements.drain(i+1..j).for_each(|e| {
+                if let ELEMENT::Text(e_t, e_i) = e {
+                    content.push_str(&" ".repeat(e_i-indent));
+                    content.push_str(&e_t);
+                }
+            });
+
             elements[i] = ELEMENT::Paragraph(content);
 
 
