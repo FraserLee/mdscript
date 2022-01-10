@@ -55,7 +55,7 @@ impl ELEMENT {
             ELEMENT::Empty => panic!("tried to render empty element"),
 
 
-            ELEMENT::CodeBlock(code) => format!("<code>{}\n</code>", code),
+            ELEMENT::CodeBlock(code) => format!("<code class=\"code-block\">{}</code>", code),
 
             ELEMENT::Header{level, text} => 
                 format!("<h{}>{}</h{}>", level, compiler_line::parse_text(text), level),
@@ -150,26 +150,30 @@ fn parse_paragraphs(elements: &mut Vec<ELEMENT>) {
     let mut i = 0;
     while i < elements.len() {
         if let ELEMENT::Text(text, indent) = &elements[i] {
-            let mut content = text.to_string();
             let mut j = i+1;
             while j < elements.len(){
-                if let ELEMENT::Text(e_t, e_i) = &elements[j] {
-                    if *e_i <= *indent { break; }
+                if let ELEMENT::Text(_, e_i) = &elements[j] {
+                    if *e_i < *indent { break; }
                 } else { break; }
 
                 j += 1;
             }
-            elements.drain(i+1..j).for_each(|e| {
-                if let ELEMENT::Text(e_t, e_i) = e {
-                    content.push_str(&" ".repeat(e_i-indent));
-                    content.push_str(&e_t);
+            
+            
+            let mut tinit = text.to_string();
+            let iii = indent.clone();
+            tinit = elements.drain(i+1..j).into_iter().fold(
+                tinit,
+                |mut acc, e| {
+                    // always true, but I think this is the best way to cast in rust
+                    if let ELEMENT::Text(e_t, e_i) = e { 
+                        acc.push_str(&" ".repeat(e_i-iii));
+                        acc.push_str(&e_t);
+                    }
+                    acc
                 }
-            });
-
-            elements[i] = ELEMENT::Paragraph(content);
-
-
-
+            );
+            elements[i] = ELEMENT::Paragraph(tinit);
         }
         i += 1;
     }

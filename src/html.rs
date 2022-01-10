@@ -77,6 +77,8 @@ pub fn wrap_html(in_text: String) -> String {
             border-radius: 0.2em;
             background-color: var(--d4);
             color: var(--l0);
+        }
+        .code-block {
             display: block;
             white-space: pre-wrap;
         }
