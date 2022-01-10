@@ -10,7 +10,7 @@ from importlib import reload
 
 import mdscript
 
-last_compile_time = -1
+last_compile_time = -1000
 file_path = ''
 dest_path = ''
 
@@ -20,6 +20,10 @@ debug_mode = False
 class Handler(FileSystemEventHandler):
     @staticmethod
     def on_any_event(event):
+        # check that it's not destpath changing
+        if event and event.src_path and event.src_path.startswith(dest_path):
+            return
+
         # super simple debounce
         global last_compile_time
         if time.time() - last_compile_time < 1:
@@ -66,7 +70,9 @@ if __name__ == '__main__':
     # DEBUG: while in development, run a second observer to watch the directory of the build stuff
     if debug_mode:
         observer2 = Observer()
-        observer2.schedule(event_handler, os.path.dirname(os.path.abspath(sys.argv[0])), recursive=True)
+        dev_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+        if rust_mode: dev_dir += '/src'
+        observer2.schedule(event_handler, dev_dir, recursive=True)
         observer2.start()
     # END DEBUG
 
