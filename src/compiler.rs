@@ -18,6 +18,9 @@ pub fn compile_str(in_text: String) -> String {
     // pass 1 - fence off all multiline codeblocks
     fence_codeblocks(&mut elements);
 
+    // pass 1b - fence off all latex blocks
+    fence_latex(&mut elements);
+
     // pass 2 - convert heading elements to h1, h2, etc.
     parse_headings(&mut elements);
 
@@ -39,7 +42,6 @@ pub fn compile_str(in_text: String) -> String {
     // pass 5 - pull out all breaks
     parse_br(&mut elements);
 
-
     html::wrap_html(
         elements.into_iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n")
     )
@@ -52,6 +54,7 @@ enum ELEMENT {
 
     // more complex elements
     CodeBlock(String),
+    LatexBlock(String),
     Header{level: usize, text: String},
     Paragraph(String),
     HorizontalRule,
@@ -68,6 +71,8 @@ impl ELEMENT {
 
 
             ELEMENT::CodeBlock(code) => format!("<code class=\"code-block\">{}</code>", code),
+            // very much a stopgap till I can get client-side equation rendering
+            ELEMENT::LatexBlock(latex) => format!("<p class=\"latex-block\">\\[{}\\]</p>", latex),
 
             ELEMENT::Header{level, text} => 
                 format!("<h{}>{}</h{}>", level, compiler_line::parse_text(text), level),
@@ -130,6 +135,41 @@ fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
     }
 }
 
+
+fn fence_latex(elements: &mut Vec<ELEMENT>) {
+    let mut i = 0;
+    'outer: while i < elements.len() {
+        if let ELEMENT::Text(text, _) = &elements[i] {
+            if text.starts_with("$$") {
+                let mut j = i;
+                while j < elements.len() {
+                    match &elements[j] {
+                        ELEMENT::Text(text, _) => 
+                                  { if text.ends_with("$$") { break; } },
+                        ELEMENT::Empty => {},
+                        _ => {continue 'outer;}, // just abandon the rest of the block if we hit a non-text element
+                    }
+                    j += 1;
+                }
+
+                // pop (drain) all latex lines, and replace with a single latex block
+                // come back and rewrite this with less copies once I understand rust better
+                elements[i] = ELEMENT::LatexBlock((text[2..].to_string() + &elements.drain(i+1..j+1).into_iter()
+                    .map(|e| {
+                        if let ELEMENT::Text(t, _) = e {
+                            t.to_string()
+                        } else if let ELEMENT::Empty = e {
+                            "\n".to_string()
+                        } else {
+                            panic!("latex block contains already parsed element")
+                        }
+                    }).collect::<Vec<_>>().join(" ")).trim_end_matches("$$").to_string());
+            }
+        }
+        i += 1;
+    }
+}
+
 fn parse_headings(elements: &mut Vec<ELEMENT>) {
     for i in 0..elements.len() {
         if let ELEMENT::Text(text, _) = &elements[i] {
@@ -157,9 +197,15 @@ fn parse_hr(elements: &mut Vec<ELEMENT>) {
 }
 
 fn parse_paragraphs(elements: &mut Vec<ELEMENT>) {
+    for (i, c) in elements.iter().enumerate() {
+        if let ELEMENT::CodeBlock(_) = c {
+            println!("CODE: {}", i);
+        }
+    }
+
     let mut i = 0;
     while i < elements.len() {
-        if let ELEMENT::Text(_, ei_indent) = &elements[i] {
+        if let ELEMENT::Text(ei_text, ei_indent) = &elements[i] {
             let mut j = i+1;
             while j < elements.len(){
                 // keep counting till we either find a line that's not text, or
@@ -174,7 +220,8 @@ fn parse_paragraphs(elements: &mut Vec<ELEMENT>) {
             // (there's gotta be a more rust-ish way to do it)
             let indent = ei_indent.clone();
             elements[i] = 
-                ELEMENT::Paragraph(elements.drain(i..j).into_iter()
+                ELEMENT::Paragraph(ei_text.to_string() + " " +
+                    &elements.drain(i+1..j).into_iter()
                 .map(|e| {
                     // always true, but I think this is the best way to cast in rust
                     if let ELEMENT::Text(t, i) = e {
