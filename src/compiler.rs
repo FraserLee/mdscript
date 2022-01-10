@@ -15,16 +15,16 @@ pub fn compile_str(in_text: String) -> String {
                else { ELEMENT::Text(line[i..].to_string(), indent) };
     }).collect();
 
-    // pass 1 - fence off all multiline codeblocks
+    // pass 1 - fence off all multiline codeblocks (first)
     fence_codeblocks(&mut elements);
 
-    // pass 1b - fence off all latex blocks
+    // pass 1b - fence off all latex blocks (after codeblocks, still early)
     fence_latex(&mut elements);
 
     // pass 2 - convert heading elements to h1, h2, etc.
     parse_headings(&mut elements);
 
-    // pass 3 - pull out all horizontal rules
+    // pass 3 - pull out all horizontal rules (after headings, before hr)
     parse_hr(&mut elements);
 
     // pass 4 - pull out all list items
@@ -36,10 +36,10 @@ pub fn compile_str(in_text: String) -> String {
     // pass 5 - image links
     parse_images(&mut elements);
 
-    // pass 4 - pull out all paragraphs
+    // pass 4 - pull out all paragraphs (late)
     parse_paragraphs(&mut elements);
 
-    // pass 5 - pull out all breaks
+    // pass 5 - pull out all breaks (very late)
     parse_br(&mut elements);
 
     html::wrap_html(
@@ -61,6 +61,10 @@ enum ELEMENT {
     Break(usize),
     ListItem{indent: usize, text: String},
     Image{src: String, alt: String},
+
+    // nesting
+    Nested{parent: Box<ELEMENT>, child: Vec<ELEMENT>},
+    Raw(String),
 }
 
 impl ELEMENT {
@@ -90,6 +94,15 @@ impl ELEMENT {
 
             ELEMENT::Image{src, alt} => 
                 format!("<img src=\"{}\" alt=\"{}\" class=\"image\">", src, alt),
+
+            ELEMENT::Nested{parent, child} => {
+                let mut parent_str = parent.to_string();
+                let parent_closing_tag_index = parent_str.find("</").unwrap();
+                parent_str.insert_str(parent_closing_tag_index, &child.into_iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n"));
+                parent_str
+            },
+
+            ELEMENT::Raw(text) => text,
         }
     }
 }
@@ -190,6 +203,16 @@ fn parse_hr(elements: &mut Vec<ELEMENT>) {
         if let ELEMENT::Text(text, _) = &elements[i] {
             if text.trim() == "---" {
                 elements[i] = ELEMENT::HorizontalRule;
+                if i > 0 { // if we're right below an <h>, nest the hr
+                    if let ELEMENT::Header{level, text} = &elements[i-1] {
+                        elements[i-1] = ELEMENT::Nested
+                        {parent: Box::new(ELEMENT::Header{level: *level, text: text.to_string()}), 
+                         child: vec![ELEMENT::Raw("<hr style=\"margin: 0\">".to_string())]};
+
+                        elements.remove(i);
+                        i -= 1;
+                    }
+                }
             }
         }
         i += 1;
@@ -197,12 +220,6 @@ fn parse_hr(elements: &mut Vec<ELEMENT>) {
 }
 
 fn parse_paragraphs(elements: &mut Vec<ELEMENT>) {
-    for (i, c) in elements.iter().enumerate() {
-        if let ELEMENT::CodeBlock(_) = c {
-            println!("CODE: {}", i);
-        }
-    }
-
     let mut i = 0;
     while i < elements.len() {
         if let ELEMENT::Text(ei_text, ei_indent) = &elements[i] {

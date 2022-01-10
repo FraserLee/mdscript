@@ -17,19 +17,6 @@ def compile_lines(source):
     light_colours = ('dd', 'll')
     dark_colours = ('l0', 'd0')
     for i, data in enumerate(interline_logic(parse_lines(source))):
-        if type(data) == empty:
-            result += '<br>\n'
-        elif type(data) == img:
-            result += f'<img src="{data.src}" alt="{data.alt}">\n'
-        elif type(data) == li:
-            result += f'<li style="margin-left: {data.indent/2.0}em">{data.text}</li>\n'
-        elif type(data) == ul:
-            if data.opening:
-                result += '<ul>\n'
-            else:
-                result += '</ul>\n'
-        elif type(data) == paragraph:
-            result += f'<p>{data.text}</p>\n'
         elif type(data) == compiler_command:
             # print an error paragraph in red if the command fails
             if data.command == 'colour':
@@ -72,16 +59,7 @@ def colourbar(t_col, b_col):
     return f'</div></div><div class="outerbox" style="background-color: var(--{b_col});"><div class="innerbox" style="color: var(--{t_col});">'
 
 def parse_lines(lines):
-    """
-    Parse a list of lines into a list of (type, text) tuples.
-    """
-    result = []
     for line in lines:
-        # <EMPTY LINES>
-        if line.strip() == '':
-            result.append(empty())
-            continue
-        # <EMPTY LINES>
         # <IMG>
         match = re.match(r'^!\[(.+?)\]\((.+?)\)', line)
         if match:
@@ -141,25 +119,6 @@ def interline_logic(line_tuples):
 
         result.append(lineobj)
     return result
-
-class linelist:
-    def __init__(self, lines):
-        self.lines = lines
-        self.index = 0
-
-    def peek(self, n = 0): # n = 0 -> peek at current line, supports negative n
-        if self.index + n < len(self.lines) and self.index + n >= 0:
-            return self.lines[self.index + n]
-        else:
-            return None
-
-    def pop(self):
-        if self.index < len(self.lines):
-            result = self.lines[self.index]
-            self.index += 1
-            return result
-        else:
-            return None
 
 def parse_text(text):
     # line-mode latex math (processed by mathjax, very wip) 
