@@ -69,21 +69,21 @@ pub fn parse_text(mut text: String) -> String {
     // 3c: substitute asciimath blocks back in
     #[allow(unused_variables)]
     for block in asciimath_blocks.iter(){
-        text = text.replace("!ASCIIMATH_BLOCK_PLACEHOLDER!", "asciimath isn't yet supported by the compiler");
+        text = text.replacen("!ASCIIMATH_BLOCK_PLACEHOLDER!", "asciimath isn't yet supported by the compiler", 1);
     }
     // 3d: re-add escaped percent signs
     text = text.replace("!PERCENT_COMPILE_TIME_ESCAPE!", "%");
 
     // 2c: substitute latex blocks back in
     for block in latex_blocks.iter(){
-        text = text.replace("!LATEX_BLOCK_PLACEHOLDER!", &format!("\\({}\\)", block)[..]);
+        text = text.replacen("!LATEX_BLOCK_PLACEHOLDER!", &format!("\\({}\\)", block)[..], 1);
     }
     // 2d: re-add escaped dollar signs
     text = text.replace("!DOLLAR_COMPILE_TIME_ESCAPE!", "$");
 
     // 1c: substitute code-blocks back in
     for block in code_blocks.iter(){
-        text = text.replace("!CODE_BLOCK_PLACEHOLDER!", &format!("<code>{}</code>", block)[..]);
+        text = text.replacen("!CODE_BLOCK_PLACEHOLDER!", &format!("<code>{}</code>", block)[..], 1);
     }
     // 1d: re-add escaped backticks
     text = text.replace("!BACKTICK_COMPILE_TIME_ESCAPE!", "`");
