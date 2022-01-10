@@ -10,7 +10,8 @@ pub fn compile_str(in_text: String) -> String {
             else { break; }
             i += 1;
         }
-        ELEMENT::Text(line[i..].to_string(), indent)
+        return if i == line.len() { ELEMENT::Empty } 
+               else { ELEMENT::Text(line[i..].to_string(), indent) };
     }).collect();
 
     // pass 1 - fence off all multiline codeblocks
@@ -22,9 +23,11 @@ pub fn compile_str(in_text: String) -> String {
     // pass 3 - pull out all horizontal rules
     parse_hr(&mut elements);
 
-    // TEMP: convert all text to paragraphs
-    elements = elements.into_iter().map(|e| { if let ELEMENT::Text(s, _) = e { 
-        ELEMENT::Paragraph(s) } else { e } }).collect();
+    // pass 4 - pull out all paragraphs
+    parse_paragraphs(&mut elements);
+
+    // pass 4 - pull out all breaks
+    parse_br(&mut elements);
 
 
     html::wrap_html(
@@ -33,17 +36,25 @@ pub fn compile_str(in_text: String) -> String {
 }
 
 enum ELEMENT {
+    // first pass
     Text(String, usize), // text, indent
+    Empty,
+
+    // more complex elements
     CodeBlock(String),
     Header{level: usize, text: String},
     Paragraph(String),
     HorizontalRule,
+    Break,
 }
 
 impl ELEMENT {
     fn to_string(self) -> String {
         match self {
-            ELEMENT::Text(text, _) => text,
+            ELEMENT::Text(_, _) => panic!("tried to render raw text element"),
+            ELEMENT::Empty => panic!("tried to render empty element"),
+
+
             ELEMENT::CodeBlock(code) => format!("<code>{}\n</code>", code),
 
             ELEMENT::Header{level, text} => 
@@ -52,6 +63,7 @@ impl ELEMENT {
             ELEMENT::Paragraph(text) => format!("<p>{}</p>", compiler_line::parse_text(text)),
 
             ELEMENT::HorizontalRule => "<hr>".to_string(),
+            ELEMENT::Break          => "<br>".to_string(),
         }
     }
 }
@@ -78,8 +90,10 @@ fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
                         .map(|e| {
                             if let ELEMENT::Text(t, i) = e {
                                 format!("{}{}", " ".repeat(i-codeblock_indent), t)
+                            } else if let ELEMENT::Empty = e {
+                                " ".repeat(codeblock_indent)
                             } else {
-                                panic!("codeblock contains non-text element")
+                                panic!("codeblock contains already parsed element")
                             }
                         }).collect::<Vec<_>>().join("\n"));
 
@@ -103,7 +117,7 @@ fn parse_headings(elements: &mut Vec<ELEMENT>) {
                 let t = text.trim_start_matches('#');
                 level -= t.len();
                 level = level.min(6);
-                elements[i] = ELEMENT::Header{level, text: t.trim_start().to_string()};
+                elements[i] = ELEMENT::Header{level, text: t.to_string()};
             }
         }
     }
@@ -121,4 +135,41 @@ fn parse_hr(elements: &mut Vec<ELEMENT>) {
         i += 1;
     }
 }
+
+fn parse_br(elements: &mut Vec<ELEMENT>) {
+    let mut i = 0;
+    while i < elements.len() {
+        if let ELEMENT::Empty = &elements[i] {
+            elements[i] = ELEMENT::Break;
+        }
+        i += 1;
+    }
+}
+
+fn parse_paragraphs(elements: &mut Vec<ELEMENT>) {
+    let mut i = 0;
+    while i < elements.len() {
+        if let ELEMENT::Text(text, indent) = &elements[i] {
+            let mut content = text.to_string();
+            while i+1 < elements.len(){
+                if let ELEMENT::Text(text_extend, indent_extend) = &elements[i+1] {
+                    if *indent_extend < *indent {
+                        break;
+                    } else {
+                        content.push_str(&" ".repeat(*indent_extend - *indent));
+                        content.push_str(text_extend);
+                        elements.remove(i+1);
+                    }
+                } else { break; }
+            }
+            elements[i] = ELEMENT::Paragraph(content);
+
+
+
+        }
+        i += 1;
+    }
+}
+
+
 

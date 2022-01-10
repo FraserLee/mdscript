@@ -4,11 +4,6 @@ class paragraph:
     text: str
 
 @dataclass
-class h:
-    level: int
-    text: str
-
-@dataclass
 class img:
     alt: str
     src: str
