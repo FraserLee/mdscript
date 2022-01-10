@@ -31,27 +31,13 @@ class compiler_command:
     command: str
     args: list[str] = field(default_factory=list)
 
-@dataclass
-class hr:
-    pass
-
-
 def compile_lines(source):
-    """
-    Compile a markdown file to html.
-    """
-    source += '\n'
-    result = ''
     invert_colours = False
     light_colours = ('dd', 'll')
     dark_colours = ('l0', 'd0')
     for i, data in enumerate(interline_logic(parse_lines(source))):
         if type(data) == empty:
             result += '<br>\n'
-        elif type(data) == hr:
-            result += '<hr>\n'
-        elif type(data) == h:
-            result += f'<h{data.level}>{data.text}</h{data.level}>\n'
         elif type(data) == img:
             result += f'<img src="{data.src}" alt="{data.alt}">\n'
         elif type(data) == li:
@@ -210,8 +196,6 @@ class linelist:
 def parse_text(text):
     # line-mode latex math (processed by mathjax, very wip) 
     text = re.sub(r'\$\$(.+?)\$\$', r'\[\1\]', text)
-
-
 
 def header(t_col, b_col):
     result += f'background-color: var(--{b_col});\n            color: var(--{t_col});'
