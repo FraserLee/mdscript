@@ -22,8 +22,6 @@ def compile_lines(source):
         elif type(data) == img:
             result += f'<img src="{data.src}" alt="{data.alt}">\n'
         elif type(data) == li:
-            # janky af to use margin-left instead of actually nesting lists, 
-            # but it shockingly looks kinda better and offers you more control
             result += f'<li style="margin-left: {data.indent/2.0}em">{data.text}</li>\n'
         elif type(data) == ul:
             if data.opening:

@@ -30,6 +30,9 @@ pub fn compile_str(in_text: String) -> String {
     // pass 4b - create list contexts around list items
     // TODO
 
+    // pass 5 - image links
+    parse_images(&mut elements);
+
     // pass 4 - pull out all paragraphs
     parse_paragraphs(&mut elements);
 
@@ -54,6 +57,7 @@ enum ELEMENT {
     HorizontalRule,
     Break(usize),
     ListItem{indent: usize, text: String},
+    Image{src: String, alt: String},
 }
 
 impl ELEMENT {
@@ -77,7 +81,10 @@ impl ELEMENT {
             // but it shockingly looks kinda better and offers you more control
             ELEMENT::ListItem{indent, text} => 
                 format!("<li style=\"margin-left: {}em\">{}</li>", 
-                    indent as f32 / 2.0, compiler_line::parse_text(text))
+                    indent as f32 / 2.0, compiler_line::parse_text(text)),
+
+            ELEMENT::Image{src, alt} => 
+                format!("<img src=\"{}\" alt=\"{}\" class=\"image\">", src, alt),
         }
     }
 }
@@ -173,7 +180,7 @@ fn parse_paragraphs(elements: &mut Vec<ELEMENT>) {
                     if let ELEMENT::Text(t, i) = e {
                         format!("{}{}", " ".repeat(i-indent), t)
                     } else { panic!("shouldn't be reachable") }
-                }).collect::<Vec<_>>().join(""));
+                }).collect::<Vec<_>>().join(" "));
         }
         i += 1;
     }
@@ -193,7 +200,8 @@ fn parse_br(elements: &mut Vec<ELEMENT>) {
                     elements.remove(i+1);
                 } else { break; }
             }
-            elements[i] = ELEMENT::Break(count);
+            if count > 0 { elements[i] = ELEMENT::Break(count); } 
+            else { elements.remove(i); }
         }
         i += 1;
     }
@@ -206,6 +214,17 @@ fn parse_list_items(elements: &mut Vec<ELEMENT>) {
         if let ELEMENT::Text(text, indent) = e {
             if let Some(caps) = re.captures(text) {
                 *e = ELEMENT::ListItem{indent: *indent, text: caps[1].to_string()};
+            }
+        }
+    }
+}
+
+fn parse_images(elements: &mut Vec<ELEMENT>) {
+    let re = Regex::new(r"^!\[(.*)\]\((.*)\)\s*$").unwrap();
+    for e in elements.iter_mut() {
+        if let ELEMENT::Text(text, _) = e {
+            if let Some(caps) = re.captures(text) {
+                *e = ELEMENT::Image{alt: caps[1].to_string(), src: caps[2].to_string()};
             }
         }
     }
