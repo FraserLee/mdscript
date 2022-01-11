@@ -15,8 +15,10 @@ use regex::Regex;
 pub fn compile_str(in_text: String) -> String {
     // initialize state 
     let mut global_state = GlobalState{
-        base_colour: ("ll".to_string(), "dd".to_string()),
-        invert_colour: ("d0".to_string(), "l0".to_string()),
+        base_colour_bg: "ll".to_string(),
+        base_colour_fg: "dd".to_string(),
+        invert_colour_bg: "d0".to_string(),
+        invert_colour_fg: "l0".to_string(),
     };
     // for each in text.lines, make a ELEMENT::Text containing it
     let mut elements: Vec<_> = in_text.lines().map(|line| {
@@ -68,17 +70,76 @@ pub fn compile_str(in_text: String) -> String {
     // pass 8 - pull out all breaks (very late)
     parse_br(&mut elements);
 
+    // render that whole thing out.
+    let mut local_state = LocalState{
+        colour_fg: global_state.base_colour_fg.to_string(),
+        colour_bg: global_state.base_colour_bg.to_string(),
+        justification: JUSTIFY::Left,
+        update_inner: false,
+        update_outer: false,
+    };
+
+    let mut render = "".to_string();
+    for e in elements.into_iter() {
+        if let ELEMENT::Command(command) = &e {
+            command.update_localstate(&mut local_state, &global_state);
+        }else{
+            // if the outer box is being updated, we need to update the inner box too
+            local_state.update_inner |= local_state.update_outer;
+            if local_state.update_outer { render.push_str("</div>"); }
+            if local_state.update_inner { render.push_str("</div>"); }
+            if local_state.update_outer { 
+                render.push_str("<div class=\"outerbox\" style=\"background-color: var(--"); 
+                render.push_str(&local_state.colour_bg); 
+                render.push_str(");\">"); 
+            }
+            if local_state.update_inner {
+                render.push_str("<div class=\"innerbox\" style=\"color: var(--");
+                render.push_str(&local_state.colour_fg);
+                render.push_str("); text-align: ");
+                render.push_str(match local_state.justification {
+                    JUSTIFY::Left => "left",
+                    JUSTIFY::Centre => "center",
+                    JUSTIFY::Right => "right",
+                });
+                render.push_str(";\">");
+            }
+            // do update 
+            local_state.update_outer = false;
+            local_state.update_inner = false;
+        }
+        render += &e.to_string(&local_state, &global_state);
+    }
+
     html::wrap_html(
-        &elements.into_iter().map(|e| e.to_string(&global_state)).collect::<Vec<_>>().join("\n"),
-        &global_state.base_colour.0, &global_state.base_colour.1
+        &render, &global_state.base_colour_bg, &global_state.base_colour_fg,
     )
 }
 
+#[derive(Debug)]
 struct GlobalState{
-    base_colour: (String, String),
-    invert_colour: (String, String),
+    base_colour_fg: String,
+    base_colour_bg: String,
+    invert_colour_fg: String,
+    invert_colour_bg: String,
 }
 
+#[derive(Debug)]
+struct LocalState{
+    colour_fg: String,
+    colour_bg: String,
+    justification: JUSTIFY,
+    update_inner: bool,
+    update_outer: bool,
+}
+
+// *said in an artificially deep and gravely voice*
+#[derive(PartialEq, Eq, Debug, Clone)]
+enum JUSTIFY{ 
+    Left,
+    Centre,
+    Right,
+}
 
 enum ELEMENT {
     // first pass
@@ -109,43 +170,43 @@ enum COMMAND {
     Invert,
     InvertAll,
     Error(String),
-    Left,
-    Centre,
-    Right,
+    Justify(JUSTIFY),
 }
 
 impl ELEMENT {
-    fn to_string(self, global_state: &GlobalState) -> String {
+    fn to_string(self, local_state: &LocalState, global_state: &GlobalState) -> String {
         match self {
             ELEMENT::Text(_, _) => panic!("tried to render raw text element"),
             ELEMENT::Empty => panic!("tried to render empty element"),
 
 
-            ELEMENT::CodeBlock(code) => format!("<code class=\"code-block\">{}</code>", code),
+            ELEMENT::CodeBlock(code) => format!("<code class=\"code-block\">{}</code>\n", code),
             // very much a stopgap till I can get client-side equation rendering
-            ELEMENT::LatexBlock(latex) => format!("<p class=\"latex-block\">\\[{}\\]</p>", latex),
+            ELEMENT::LatexBlock(latex) => format!("<p class=\"latex-block\">\\[{}\\]</p>\n", latex),
 
             ELEMENT::Header{level, text} => 
-                format!("<h{}>{}</h{}>", level, compiler_line::parse_text(text), level),
+                format!("<h{}>{}</h{}>\n", level, compiler_line::parse_text(text), level),
 
-            ELEMENT::Paragraph(text) => format!("<p>{}</p>", compiler_line::parse_text(text)),
+            ELEMENT::Paragraph(text) => format!("<p>{}</p>\n", compiler_line::parse_text(text)),
 
-            ELEMENT::HorizontalRule => "<hr>".to_string(),
-            ELEMENT::Break(count)   => "<br>".repeat(count),
+            ELEMENT::HorizontalRule => "<hr>\n".to_string(),
+            ELEMENT::Break(count)   => "<br>".repeat(count) + "\n",
 
             // janky to use margin-left instead of actually nesting lists, 
             // but it shockingly looks kinda better and offers you more control
             ELEMENT::ListItem{indent, text} => 
-                format!("<li style=\"margin-left: {}em\">{}</li>", 
+                format!("<li style=\"margin-left: {}em\">{}</li>\n", 
                     indent as f32 / 2.0, compiler_line::parse_text(text)),
 
             ELEMENT::Image{src, alt} => 
-                format!("<img src=\"{}\" alt=\"{}\" class=\"image\">", src, alt),
+                format!("<img src=\"{}\" alt=\"{}\" class=\"image\">\n", src, alt),
 
             ELEMENT::Nested{parent, child} => {
-                let mut parent_str = parent.to_string(global_state);
+                let mut parent_str = parent.to_string(local_state, global_state);
                 let parent_closing_tag_index = parent_str.find("</").unwrap();
-                parent_str.insert_str(parent_closing_tag_index, &child.into_iter().map(|e| e.to_string(global_state)).collect::<Vec<_>>().join("\n"));
+                parent_str.insert_str(parent_closing_tag_index, 
+                    &child.into_iter().map(|e| e.to_string(local_state, 
+                            global_state)).collect::<Vec<_>>().join(""));
                 parent_str
             },
 
@@ -153,17 +214,9 @@ impl ELEMENT {
             
             ELEMENT::Command(command) => 
                 match command {
-                    COMMAND::Colour(bg, fg) => colourbar(&bg, &fg),
-                    COMMAND::EndColour => colourbar(&global_state.base_colour.0, &global_state.base_colour.1),
-                    COMMAND::Invert => colourbar(&global_state.invert_colour.0, &global_state.invert_colour.1),
-                    COMMAND::InvertAll => "".to_string(),
-                    COMMAND::Error(message) =>
-                        format!("<p style=\"color: red\">{}</p>", message).to_string(),
-                    COMMAND::Left   => "</div><div class='innerbox' style=\"text-align: left\">".to_string(),
-                    COMMAND::Centre => "</div><div class='innerbox' style=\"text-align: center\">".to_string(),
-                    COMMAND::Right  => "</div><div class='innerbox' style=\"text-align: right\">".to_string(),
+                    COMMAND::Error(message) => format!("<p style=\"color: red\">{}</p>", message).to_string(),
+                    _ => "".to_string(),
                 },
-
         }
     }
 }
@@ -173,24 +226,47 @@ impl COMMAND {
         match self {
             COMMAND::InvertAll => { 
                 // this 100% shouldn't need clones, idk how to do it without rust complaining at me
-                let b0 = global_state.base_colour.0.clone();
-                let b1 = global_state.base_colour.1.clone();
-                let i0 = global_state.invert_colour.0.clone();
-                let i1 = global_state.invert_colour.1.clone();
-                global_state.base_colour = (i0, i1);
-                global_state.invert_colour = (b0, b1);
+                let b0 = global_state.base_colour_bg.clone();
+                let b1 = global_state.base_colour_fg.clone();
+                let i0 = global_state.invert_colour_bg.clone();
+                let i1 = global_state.invert_colour_fg.clone();
+                global_state.base_colour_bg = i0;
+                global_state.base_colour_fg = i1;
+                global_state.invert_colour_bg = b0;
+                global_state.invert_colour_fg = b1;
+            },
+            _ => (),
+        }
+    }
+    fn update_localstate(&self, local_state: &mut LocalState, global_state: &GlobalState) {
+        match self {
+            COMMAND::Colour(bg, fg) => {
+                local_state.update_outer |= *bg != local_state.colour_bg;
+                local_state.update_inner |= *fg != local_state.colour_fg;
+                local_state.colour_bg = bg.clone();
+                local_state.colour_fg = fg.clone();
+            },
+            COMMAND::EndColour => {
+                local_state.update_outer |= global_state.base_colour_bg != local_state.colour_bg;
+                local_state.update_inner |= global_state.base_colour_fg != local_state.colour_fg;
+                local_state.colour_bg = global_state.base_colour_bg.clone();
+                local_state.colour_fg = global_state.base_colour_fg.clone();
+            },
+            COMMAND::Invert => {
+                local_state.update_outer |= global_state.invert_colour_bg != local_state.colour_bg;
+                local_state.update_inner |= global_state.invert_colour_fg != local_state.colour_fg;
+                local_state.colour_bg = global_state.invert_colour_bg.clone();
+                local_state.colour_fg = global_state.invert_colour_fg.clone();
+            },
+            COMMAND::Justify(justify) => {
+                local_state.update_inner |= local_state.justification != *justify;
+                local_state.justification = (*justify).clone()
             },
             _ => (),
         }
     }
 }
 
-
-fn colourbar(b_col: &str, t_col: &str) -> String {
-    format!("</div></div><div class=\"outerbox\" style=\"background-color: \
-            var(--{});\"><div class=\"innerbox\" style=\"color: var(--{});\">",
-        b_col, t_col)
-}
 
 fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
     let mut in_codeblock = false;
@@ -421,11 +497,11 @@ fn parse_commands(elements: &mut Vec<ELEMENT>) {
                         *e = ELEMENT::Command(COMMAND::Error("!invert_all must be on the first line".to_string()));
                     }
                 } else if &caps[1] == "left" {
-                    *e = ELEMENT::Command(COMMAND::Left);
+                    *e = ELEMENT::Command(COMMAND::Justify(JUSTIFY::Left));
                 } else if &caps[1] == "right" {
-                    *e = ELEMENT::Command(COMMAND::Right);
+                    *e = ELEMENT::Command(COMMAND::Justify(JUSTIFY::Right));
                 } else if &caps[1] == "centre" {
-                    *e = ELEMENT::Command(COMMAND::Centre);
+                    *e = ELEMENT::Command(COMMAND::Justify(JUSTIFY::Centre));
                 } else {
                     *e = ELEMENT::Command(COMMAND::Error("Unknown command: ".to_string() + &caps[0]));
                 }
