@@ -57,8 +57,9 @@ pub fn compile_str(in_text: String) -> String {
 
     // pass 6 - pull out all list items
     parse_list_items(&mut elements);
-
-    // pass 6b - create list contexts around list items
+    // pass 6b - unify multiline list items
+    unify_list_items(&mut elements);
+    // pass 6c - create list contexts around list items
     // TODO
 
     // pass 7 - pull out all paragraphs (late)
@@ -180,8 +181,8 @@ impl COMMAND {
 
 
 fn colourbar(b_col: &str, t_col: &str) -> String {
-    format!("</div></div><div class=\"outerbox\" style=\"background-color:
-        var(--{});\"><div class=\"innerbox\" style=\"color: var(--{});\">",
+    format!("</div></div><div class=\"outerbox\" style=\"background-color: \
+            var(--{});\"><div class=\"innerbox\" style=\"color: var(--{});\">",
         b_col, t_col)
 }
 
@@ -357,6 +358,26 @@ fn parse_list_items(elements: &mut Vec<ELEMENT>) {
                 *e = ELEMENT::ListItem{indent: *indent, text: caps[1].to_string()};
             }
         }
+    }
+}
+
+fn unify_list_items(elements: &mut Vec<ELEMENT>) {
+    let mut i = 0;
+    while i < elements.len() {
+        if let ELEMENT::ListItem{indent, text} = &elements[i] {
+            let mut text = text.clone();
+            let indent = indent.clone();
+            while i+1 < elements.len() {
+                if let ELEMENT::Text(j_text, j_indent) = &elements[i+1] {
+                    if *j_indent < indent + 2 { break; }
+                    text += " ";
+                    text += j_text;
+                    elements.remove(i+1);
+                } else { break; }
+            }
+            elements[i] = ELEMENT::ListItem{indent, text};
+        }
+        i += 1;
     }
 }
 
