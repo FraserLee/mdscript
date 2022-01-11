@@ -14,7 +14,7 @@ use regex::Regex;
 
 pub fn compile_str(in_text: String) -> String {
     // initialize state 
-    let mut state = State{
+    let mut global_state = GlobalState{
         base_colour: ("ll".to_string(), "dd".to_string()),
         invert_colour: ("d0".to_string(), "l0".to_string()),
     };
@@ -45,7 +45,7 @@ pub fn compile_str(in_text: String) -> String {
     // pass 3b - allow commands to modify state for the first pass
     for e in elements.iter() {
         if let ELEMENT::Command(c) = e {
-            c.set_state(&mut state);
+            c.set_globalstate(&mut global_state);
         }
     }
 
@@ -69,12 +69,12 @@ pub fn compile_str(in_text: String) -> String {
     parse_br(&mut elements);
 
     html::wrap_html(
-        &elements.into_iter().map(|e| e.to_string(&state)).collect::<Vec<_>>().join("\n"),
-        &state.base_colour.0, &state.base_colour.1
+        &elements.into_iter().map(|e| e.to_string(&global_state)).collect::<Vec<_>>().join("\n"),
+        &global_state.base_colour.0, &global_state.base_colour.1
     )
 }
 
-struct State{
+struct GlobalState{
     base_colour: (String, String),
     invert_colour: (String, String),
 }
@@ -115,7 +115,7 @@ enum COMMAND {
 }
 
 impl ELEMENT {
-    fn to_string(self, state: &State) -> String {
+    fn to_string(self, global_state: &GlobalState) -> String {
         match self {
             ELEMENT::Text(_, _) => panic!("tried to render raw text element"),
             ELEMENT::Empty => panic!("tried to render empty element"),
@@ -143,9 +143,9 @@ impl ELEMENT {
                 format!("<img src=\"{}\" alt=\"{}\" class=\"image\">", src, alt),
 
             ELEMENT::Nested{parent, child} => {
-                let mut parent_str = parent.to_string(state);
+                let mut parent_str = parent.to_string(global_state);
                 let parent_closing_tag_index = parent_str.find("</").unwrap();
-                parent_str.insert_str(parent_closing_tag_index, &child.into_iter().map(|e| e.to_string(state)).collect::<Vec<_>>().join("\n"));
+                parent_str.insert_str(parent_closing_tag_index, &child.into_iter().map(|e| e.to_string(global_state)).collect::<Vec<_>>().join("\n"));
                 parent_str
             },
 
@@ -154,8 +154,8 @@ impl ELEMENT {
             ELEMENT::Command(command) => 
                 match command {
                     COMMAND::Colour(bg, fg) => colourbar(&bg, &fg),
-                    COMMAND::EndColour => colourbar(&state.base_colour.0, &state.base_colour.1),
-                    COMMAND::Invert => colourbar(&state.invert_colour.0, &state.invert_colour.1),
+                    COMMAND::EndColour => colourbar(&global_state.base_colour.0, &global_state.base_colour.1),
+                    COMMAND::Invert => colourbar(&global_state.invert_colour.0, &global_state.invert_colour.1),
                     COMMAND::InvertAll => "".to_string(),
                     COMMAND::Error(message) =>
                         format!("<p style=\"color: red\">{}</p>", message).to_string(),
@@ -169,16 +169,16 @@ impl ELEMENT {
 }
 
 impl COMMAND {
-    fn set_state(&self, state: &mut State) {
+    fn set_globalstate(&self, global_state: &mut GlobalState) {
         match self {
             COMMAND::InvertAll => { 
                 // this 100% shouldn't need clones, idk how to do it without rust complaining at me
-                let b0 = state.base_colour.0.clone();
-                let b1 = state.base_colour.1.clone();
-                let i0 = state.invert_colour.0.clone();
-                let i1 = state.invert_colour.1.clone();
-                state.base_colour = (i0, i1);
-                state.invert_colour = (b0, b1);
+                let b0 = global_state.base_colour.0.clone();
+                let b1 = global_state.base_colour.1.clone();
+                let i0 = global_state.invert_colour.0.clone();
+                let i1 = global_state.invert_colour.1.clone();
+                global_state.base_colour = (i0, i1);
+                global_state.invert_colour = (b0, b1);
             },
             _ => (),
         }
