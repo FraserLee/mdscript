@@ -14,7 +14,7 @@ last_compile_time = -1000
 file_path = ''
 dest_path = ''
 
-rust_mode = False
+python_mode = False
 debug_mode = False
 
 class Handler(FileSystemEventHandler):
@@ -31,21 +31,21 @@ class Handler(FileSystemEventHandler):
         last_compile_time = time.time()
 
         print('recompiling...', end='')
-        if rust_mode: # either call cargo or the pre-compiled binary
-            if debug_mode: os.system(f'cargo run {file_path} {dest_path}')
-            else: os.system(f'target/debug/mdscript {file_path} {dest_path}')
-        else:
+        if python_mode:
             if debug_mode: reload(mdscript) # reload if in debug mode
             mdscript.compile_file(file_path, dest_path)
+        else: # either call cargo or the pre-compiled binary
+            if debug_mode: os.system(f'cargo run {file_path} {dest_path}')
+            else: os.system(f'target/debug/mdscript {file_path} {dest_path}')
         print('done')
 
 if __name__ == '__main__':
-    if '-r' in sys.argv[1:3] or '--rust' in sys.argv[1:3]:
-        rust_mode = True
+    if '-p' in sys.argv[1:3] or '--python' in sys.argv[1:3]:
+        python_mode = True
     if '-d' in sys.argv[1:3] or '--debug' in sys.argv[1:3]:
         debug_mode = True
-    if len(sys.argv) != 2 + rust_mode + debug_mode:
-        print('usage: mdwatch.py [--rust | -r] [--debug | -d] <file_path>')
+    if len(sys.argv) != 2 + python_mode + debug_mode:
+        print('usage: mdwatch.py [--python | -p] [--debug | -d] <file_path>')
         exit(1)
 
     # directory of the file to watch
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     print(f'Watching {dir_path}\n- press ctrl+c to exit\n')
 
     # if we're in rust mode, cd to the directory of this script to run cargo
-    if rust_mode:
+    if not python_mode:
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         # if not debug_mode, build it once in advance
         if not debug_mode: os.system('cargo build --release')
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     if debug_mode:
         observer2 = Observer()
         dev_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        if rust_mode: dev_dir += '/src'
+        if not python_mode: dev_dir += '/src'
         observer2.schedule(event_handler, dev_dir, recursive=True)
         observer2.start()
     # END DEBUG
