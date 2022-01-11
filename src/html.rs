@@ -52,18 +52,28 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
 
         h1 {
             font-weight: 100;
-            font-size: 5em;
+            font-size: 6em;
             margin-bottom: 0.5em;
             text-align: center;
         }
         h2 {
             font-weight: 200;
-            font-size: 3.5em;
+            font-size: 4em;
             margin: 0.5em 0;
         }
         h3 {
-            font-weight: 500;
+            font-weight: 200;
+            font-size: 2.5em;
+            margin: 0.5em 0;
+        }
+        h4 {
+            font-weight: 300;
             font-size: 1.5em;
+            margin: 0.5em 0;
+        }
+        h5 {
+            font-weight: 500;
+            font-size: 1.2em;
             margin: 0.5em 0;
         }
         img {
