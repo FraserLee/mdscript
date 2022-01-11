@@ -1,13 +1,4 @@
 @dataclass
-class img:
-    alt: str
-    src: str
-
-@dataclass
-class ul:
-    opening: bool
-
-@dataclass
 class compiler_command:
     command: str
     args: list[str] = field(default_factory=list)
@@ -60,18 +51,6 @@ def colourbar(t_col, b_col):
 
 def parse_lines(lines):
     for line in lines:
-        # <IMG>
-        match = re.match(r'^!\[(.+?)\]\((.+?)\)', line)
-        if match:
-            result.append(img(match.group(1), match.group(2)))
-            continue
-        # </IMG>
-        # <LIST>
-        match = re.match(r'^([ \t]*)(?:\-) (.+)', line)
-        if match:
-            indent = len(match.group(1).replace('\t', '    '))
-            result.append(li(indent, parse_text(match.group(2))))
-            continue
         # <COMPILER COMMANDS>
         match = re.match(r'^!(.+?)(?:\((.*)\))?$', line)
         if match:
@@ -119,10 +98,6 @@ def interline_logic(line_tuples):
 
         result.append(lineobj)
     return result
-
-def parse_text(text):
-    # line-mode latex math (processed by mathjax, very wip) 
-    text = re.sub(r'\$\$(.+?)\$\$', r'\[\1\]', text)
 
 def header(t_col, b_col):
     result += f'background-color: var(--{b_col});\n            color: var(--{t_col});'

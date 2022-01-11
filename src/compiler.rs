@@ -21,6 +21,9 @@ pub fn compile_str(in_text: String) -> String {
     // pass 1b - fence off all latex blocks (after codeblocks, still early)
     fence_latex(&mut elements);
 
+    // pass 2 - parse commands 
+    parse_commands(&mut elements);
+
     // pass 2 - convert heading elements to h1, h2, etc.
     parse_headings(&mut elements);
 
@@ -65,6 +68,17 @@ enum ELEMENT {
     // nesting
     Nested{parent: Box<ELEMENT>, child: Vec<ELEMENT>},
     Raw(String),
+
+    // compiler commands
+    Command(COMMAND),
+}
+
+enum COMMAND {
+    colour,
+    endcolour,
+    invert,
+    invert_all,
+    unknown,
 }
 
 impl ELEMENT {
@@ -103,6 +117,10 @@ impl ELEMENT {
             },
 
             ELEMENT::Raw(text) => text,
+            
+            ELEMENT::Command(command) => 
+               "<p style=\"color: red\">unknown command: !{data.command}({data.args})</p>".to_string(),
+
         }
     }
 }
@@ -147,7 +165,6 @@ fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
         i += 1;
     }
 }
-
 
 fn fence_latex(elements: &mut Vec<ELEMENT>) {
     let mut i = 0;
@@ -289,6 +306,18 @@ fn parse_images(elements: &mut Vec<ELEMENT>) {
         if let ELEMENT::Text(text, _) = e {
             if let Some(caps) = re.captures(text) {
                 *e = ELEMENT::Image{alt: caps[1].to_string(), src: caps[2].to_string()};
+            }
+        }
+    }
+}
+
+fn parse_commands(elements: &mut Vec<ELEMENT>) {
+    let re = Regex::new(r"^!(.+?)(?:\((.*)\))?$").unwrap();
+    for e in elements.iter_mut() {
+        if let ELEMENT::Text(text, _) = e {
+            #[allow(unused_variables)]
+            if let Some(caps) = re.captures(text) {
+                *e = ELEMENT::Command(COMMAND::unknown);
             }
         }
     }
