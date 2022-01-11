@@ -71,7 +71,6 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
         }
         code {
             font-family: monospace;
-            font-size: 1em;
             padding: 0.1em 0.2em;
             border-radius: 0.2em;
             background-color: var(--d4);
@@ -80,6 +79,9 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
         .code-block {
             display: block;
             white-space: pre-wrap;
+            font-size: 0.9rem;
+            line-height: 1.3;
+            padding: 0.3rem 0.5rem;
         }
         a:link {
             color: var(--f2);
