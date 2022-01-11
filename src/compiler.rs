@@ -433,7 +433,7 @@ fn parse_br(elements: &mut Vec<ELEMENT>) {
 
 fn parse_list_items(elements: &mut Vec<ELEMENT>) {
     // matches "- item", "* item", "number. item"
-    let re = Regex::new(r"^(?:\-|\*|\d+\.) (.*)").unwrap();
+    let re = Regex::new(r"^(?:\-|\*|\d+\.|[ivx]+\.) (.*)").unwrap();
     for e in elements.iter_mut() {
         if let ELEMENT::Text(text, indent) = e {
             if let Some(caps) = re.captures(text) {
