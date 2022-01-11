@@ -1,6 +1,17 @@
 use crate::{html, compiler_line};
 use regex::Regex;
 
+
+/*
+ * This project's been written over the course of a few evenings through the last week or so. At
+ * every point I've been trying to maximize functionality over a really short time-frame, which has
+ * essentially meant this has become a brute-force implementation, without any real model. It does
+ * work - and is actually fairly fast - but it'll probably need a rewrite if I were to try to
+ * extend functionality too much further past where we're at.
+ *
+ * Also of note: I don't know rust, this is 95% guesswork and rewriting stuff until it compiles :)
+ */
+
 pub fn compile_str(in_text: String) -> String {
     // for each in text.lines, make a ELEMENT::Text containing it
     let mut elements: Vec<_> = in_text.lines().map(|line| {
@@ -24,25 +35,25 @@ pub fn compile_str(in_text: String) -> String {
     // pass 2 - parse commands 
     parse_commands(&mut elements);
 
-    // pass 2 - convert heading elements to h1, h2, etc.
+    // pass 3 - convert heading elements to h1, h2, etc.
     parse_headings(&mut elements);
 
-    // pass 3 - pull out all horizontal rules (after headings, before hr)
+    // pass 4 - pull out all horizontal rules (after headings, before hr)
     parse_hr(&mut elements);
 
-    // pass 4 - pull out all list items
+    // pass 5 - pull out all list items
     parse_list_items(&mut elements);
 
-    // pass 4b - create list contexts around list items
+    // pass 5b - create list contexts around list items
     // TODO
 
-    // pass 5 - image links
+    // pass 6 - image links
     parse_images(&mut elements);
 
-    // pass 4 - pull out all paragraphs (late)
+    // pass 7 - pull out all paragraphs (late)
     parse_paragraphs(&mut elements);
 
-    // pass 5 - pull out all breaks (very late)
+    // pass 8 - pull out all breaks (very late)
     parse_br(&mut elements);
 
     html::wrap_html(
@@ -78,7 +89,7 @@ enum COMMAND {
     endcolour,
     invert,
     invert_all,
-    unknown,
+    unknown(String),
 }
 
 impl ELEMENT {
@@ -119,7 +130,14 @@ impl ELEMENT {
             ELEMENT::Raw(text) => text,
             
             ELEMENT::Command(command) => 
-               "<p style=\"color: red\">unknown command: !{data.command}({data.args})</p>".to_string(),
+                match command {
+                    COMMAND::colour => "<span class=\"colour\">".to_string(),
+                    COMMAND::endcolour => "</span>".to_string(),
+                    COMMAND::invert => "<span class=\"invert\">".to_string(),
+                    COMMAND::invert_all => "<span class=\"invert-all\">".to_string(),
+                    COMMAND::unknown(input) =>
+                        format!("<p style=\"color: red\">unknown command: {}</p>", input).to_string(),
+                },
 
         }
     }
@@ -315,9 +333,8 @@ fn parse_commands(elements: &mut Vec<ELEMENT>) {
     let re = Regex::new(r"^!(.+?)(?:\((.*)\))?$").unwrap();
     for e in elements.iter_mut() {
         if let ELEMENT::Text(text, _) = e {
-            #[allow(unused_variables)]
             if let Some(caps) = re.captures(text) {
-                *e = ELEMENT::Command(COMMAND::unknown);
+                *e = ELEMENT::Command(COMMAND::unknown(caps[0].to_string()));
             }
         }
     }
