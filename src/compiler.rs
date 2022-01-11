@@ -75,8 +75,10 @@ pub fn compile_str(in_text: String) -> String {
         colour_fg: global_state.base_colour_fg.to_string(),
         colour_bg: global_state.base_colour_bg.to_string(),
         justification: JUSTIFY::Left,
+        split: SPLIT::None,
         update_inner: false,
         update_outer: false,
+        update_vsp: false,
     };
 
     let mut render = "".to_string();
@@ -85,13 +87,22 @@ pub fn compile_str(in_text: String) -> String {
             command.update_localstate(&mut local_state, &global_state);
         }else{
             // if the outer box is being updated, we need to update the inner box too
+            local_state.update_outer |= local_state.update_vsp;
             local_state.update_inner |= local_state.update_outer;
+
+            if local_state.update_vsp && local_state.split == SPLIT::None { render.push_str("</div>"); }
             if local_state.update_outer { render.push_str("</div>"); }
             if local_state.update_inner { render.push_str("</div>"); }
+
+            if local_state.update_vsp && local_state.split != SPLIT::None {
+                render.push_str(&format!("<div style=\"display:flex;flex-direction:row;\">"));
+                local_state.update_vsp = false;
+            }
             if local_state.update_outer { 
                 render.push_str("<div class=\"outerbox\" style=\"background-color: var(--"); 
                 render.push_str(&local_state.colour_bg); 
-                render.push_str(");\">"); 
+                render.push_str(");");
+                render.push_str("\">"); 
             }
             if local_state.update_inner {
                 render.push_str("<div class=\"innerbox\" style=\"color: var(--");
@@ -102,11 +113,20 @@ pub fn compile_str(in_text: String) -> String {
                     JUSTIFY::Centre => "center",
                     JUSTIFY::Right => "right",
                 });
+                if local_state.split != SPLIT::None {
+                    render.push_str(&format!("; max-width: 20em; float: "));
+                    render.push_str(match local_state.split {
+                        SPLIT::Left => "right",
+                        SPLIT::Right => "left",
+                        _ => "none",
+                    });
+                }
                 render.push_str(";\">");
             }
             // do update 
             local_state.update_outer = false;
             local_state.update_inner = false;
+            local_state.update_vsp = false;
         }
         render += &e.to_string(&local_state, &global_state);
     }
@@ -129,8 +149,10 @@ struct LocalState{
     colour_fg: String,
     colour_bg: String,
     justification: JUSTIFY,
+    split: SPLIT,
     update_inner: bool,
     update_outer: bool,
+    update_vsp: bool,
 }
 
 // *said in an artificially deep and gravely voice*
@@ -139,6 +161,13 @@ enum JUSTIFY{
     Left,
     Centre,
     Right,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+enum SPLIT{
+    Left,
+    Right,
+    None,
 }
 
 enum ELEMENT {
@@ -171,6 +200,7 @@ enum COMMAND {
     InvertAll,
     Error(String),
     Justify(JUSTIFY),
+    Split(SPLIT),
 }
 
 impl ELEMENT {
@@ -261,6 +291,15 @@ impl COMMAND {
             COMMAND::Justify(justify) => {
                 local_state.update_inner |= local_state.justification != *justify;
                 local_state.justification = (*justify).clone()
+            },
+            COMMAND::Split(split) => {
+                if local_state.split != *split{
+                    if local_state.split == SPLIT::None || *split == SPLIT::None{
+                        local_state.update_vsp = true;
+                    } else { local_state.update_outer = true; }
+                }
+                
+                local_state.split = (*split).clone()
             },
             _ => (),
         }
@@ -502,6 +541,12 @@ fn parse_commands(elements: &mut Vec<ELEMENT>) {
                     *e = ELEMENT::Command(COMMAND::Justify(JUSTIFY::Right));
                 } else if &caps[1] == "centre" {
                     *e = ELEMENT::Command(COMMAND::Justify(JUSTIFY::Centre));
+                } else if &caps[1] == "vspl" {
+                    *e = ELEMENT::Command(COMMAND::Split(SPLIT::Left));
+                } else if &caps[1] == "vspr" {
+                    *e = ELEMENT::Command(COMMAND::Split(SPLIT::Right));
+                } else if &caps[1] == "vfull" {
+                    *e = ELEMENT::Command(COMMAND::Split(SPLIT::None));
                 } else {
                     *e = ELEMENT::Command(COMMAND::Error("Unknown command: ".to_string() + &caps[0]));
                 }
