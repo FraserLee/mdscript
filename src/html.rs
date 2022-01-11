@@ -1,4 +1,4 @@
-pub fn wrap_html(in_text: String) -> String {
+pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
     r#"<!DOCTYPE html>
 <html>
     <head>
@@ -38,8 +38,7 @@ pub fn wrap_html(in_text: String) -> String {
             --a4: #A3BE8C;
             --a5: #B47EAD;
 
-            background-color: var(--ll);
-            color: var(--dd);
+            background-color: var(--"#.to_string() + &format!("{}); color: var(--{}", bg, fg) + r#");
         }
         .outerbox {
             margin: 0;
@@ -96,7 +95,7 @@ pub fn wrap_html(in_text: String) -> String {
 <body>
 <div class="outerbox">
 <div class="innerbox">
-"#.to_string() + &in_text + r#"
+"# + &in_text + r#"
 </div>
 </div>
 </body>

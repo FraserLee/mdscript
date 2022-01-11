@@ -13,6 +13,11 @@ use regex::Regex;
  */
 
 pub fn compile_str(in_text: String) -> String {
+    // initialize state 
+    let mut state = State{
+        base_colour: ("ll".to_string(), "dd".to_string()),
+        invert_colour: ("d0".to_string(), "l0".to_string()),
+    };
     // for each in text.lines, make a ELEMENT::Text containing it
     let mut elements: Vec<_> = in_text.lines().map(|line| {
         let (mut i, mut indent) = (0, 0);
@@ -32,23 +37,29 @@ pub fn compile_str(in_text: String) -> String {
     // pass 1b - fence off all latex blocks (after codeblocks, still early)
     fence_latex(&mut elements);
 
-    // pass 2 - parse commands 
-    parse_commands(&mut elements);
+    // pass 2 - image links
+    parse_images(&mut elements);
 
-    // pass 3 - convert heading elements to h1, h2, etc.
+    // pass 3 - parse commands 
+    parse_commands(&mut elements);
+    // pass 3b - allow commands to modify state for the first pass
+    for e in elements.iter() {
+        if let ELEMENT::Command(c) = e {
+            c.set_state(&mut state);
+        }
+    }
+
+    // pass 4 - convert heading elements to h1, h2, etc.
     parse_headings(&mut elements);
 
-    // pass 4 - pull out all horizontal rules (after headings, before hr)
+    // pass 5 - pull out all horizontal rules (after headings, before hr)
     parse_hr(&mut elements);
 
-    // pass 5 - pull out all list items
+    // pass 6 - pull out all list items
     parse_list_items(&mut elements);
 
-    // pass 5b - create list contexts around list items
+    // pass 6b - create list contexts around list items
     // TODO
-
-    // pass 6 - image links
-    parse_images(&mut elements);
 
     // pass 7 - pull out all paragraphs (late)
     parse_paragraphs(&mut elements);
@@ -57,9 +68,16 @@ pub fn compile_str(in_text: String) -> String {
     parse_br(&mut elements);
 
     html::wrap_html(
-        elements.into_iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n")
+        &elements.into_iter().map(|e| e.to_string(&state)).collect::<Vec<_>>().join("\n"),
+        &state.base_colour.0, &state.base_colour.1
     )
 }
+
+struct State{
+    base_colour: (String, String),
+    invert_colour: (String, String),
+}
+
 
 enum ELEMENT {
     // first pass
@@ -85,15 +103,15 @@ enum ELEMENT {
 }
 
 enum COMMAND {
-    colour,
-    endcolour,
-    invert,
-    invert_all,
-    unknown(String),
+    Colour(String, String),
+    EndColour,
+    Invert,
+    InvertAll,
+    Error(String),
 }
 
 impl ELEMENT {
-    fn to_string(self) -> String {
+    fn to_string(self, state: &State) -> String {
         match self {
             ELEMENT::Text(_, _) => panic!("tried to render raw text element"),
             ELEMENT::Empty => panic!("tried to render empty element"),
@@ -121,9 +139,9 @@ impl ELEMENT {
                 format!("<img src=\"{}\" alt=\"{}\" class=\"image\">", src, alt),
 
             ELEMENT::Nested{parent, child} => {
-                let mut parent_str = parent.to_string();
+                let mut parent_str = parent.to_string(state);
                 let parent_closing_tag_index = parent_str.find("</").unwrap();
-                parent_str.insert_str(parent_closing_tag_index, &child.into_iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n"));
+                parent_str.insert_str(parent_closing_tag_index, &child.into_iter().map(|e| e.to_string(state)).collect::<Vec<_>>().join("\n"));
                 parent_str
             },
 
@@ -131,16 +149,40 @@ impl ELEMENT {
             
             ELEMENT::Command(command) => 
                 match command {
-                    COMMAND::colour => "<span class=\"colour\">".to_string(),
-                    COMMAND::endcolour => "</span>".to_string(),
-                    COMMAND::invert => "<span class=\"invert\">".to_string(),
-                    COMMAND::invert_all => "<span class=\"invert-all\">".to_string(),
-                    COMMAND::unknown(input) =>
-                        format!("<p style=\"color: red\">unknown command: {}</p>", input).to_string(),
+                    COMMAND::Colour(bg, fg) => colourbar(&bg, &fg),
+                    COMMAND::EndColour => colourbar(&state.base_colour.0, &state.base_colour.1),
+                    COMMAND::Invert => colourbar(&state.invert_colour.0, &state.invert_colour.1),
+                    COMMAND::InvertAll => "".to_string(),
+                    COMMAND::Error(message) =>
+                        format!("<p style=\"color: red\">{}</p>", message).to_string(),
                 },
 
         }
     }
+}
+
+impl COMMAND {
+    fn set_state(&self, state: &mut State) {
+        match self {
+            COMMAND::InvertAll => { 
+                // this 100% shouldn't need clones, idk how to do it without rust complaining at me
+                let b0 = state.base_colour.0.clone();
+                let b1 = state.base_colour.1.clone();
+                let i0 = state.invert_colour.0.clone();
+                let i1 = state.invert_colour.1.clone();
+                state.base_colour = (i0, i1);
+                state.invert_colour = (b0, b1);
+            },
+            _ => (),
+        }
+    }
+}
+
+
+fn colourbar(b_col: &str, t_col: &str) -> String {
+    format!("</div></div><div class=\"outerbox\" style=\"background-color:
+        var(--{});\"><div class=\"innerbox\" style=\"color: var(--{});\">",
+        b_col, t_col)
 }
 
 fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
@@ -331,10 +373,29 @@ fn parse_images(elements: &mut Vec<ELEMENT>) {
 
 fn parse_commands(elements: &mut Vec<ELEMENT>) {
     let re = Regex::new(r"^!(.+?)(?:\((.*)\))?$").unwrap();
-    for e in elements.iter_mut() {
+    for (i, e) in elements.iter_mut().enumerate() {
         if let ELEMENT::Text(text, _) = e {
             if let Some(caps) = re.captures(text) {
-                *e = ELEMENT::Command(COMMAND::unknown(caps[0].to_string()));
+                let mut args: Vec<String> = Vec::new();
+                if let Some(x) = caps.get(2) {
+                    args = x.as_str().split(',').map(|x| x.trim().to_string()).collect();
+                }
+
+                if &caps[1] == "colour" && args.len() == 2 {
+                    *e = ELEMENT::Command(COMMAND::Colour(args[0].to_string(), args[1].to_string()));
+                } else if &caps[1] == "end_colour" {
+                    *e = ELEMENT::Command(COMMAND::EndColour);
+                } else if &caps[1] == "invert_all" {
+                    if i == 0 {
+                        *e = ELEMENT::Command(COMMAND::InvertAll);
+                    } else {
+                        *e = ELEMENT::Command(COMMAND::Error("!invert_all must be on the first line".to_string()));
+                    }
+                } else if &caps[1] == "invert" {
+                    *e = ELEMENT::Command(COMMAND::Invert);
+                } else {
+                    *e = ELEMENT::Command(COMMAND::Error("Unknown command: ".to_string() + &caps[0]));
+                }
             }
         }
     }

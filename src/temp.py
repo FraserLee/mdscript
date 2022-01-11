@@ -35,9 +35,6 @@ def compile_lines(source):
                     result += colourbar(light_colours[0], light_colours[1])
                 else:
                     result += colourbar(dark_colours[0], dark_colours[1])
-            else:
-                result += f'<p style="color: red">unknown command: !{data.command}({data.args})</p>\n'
-    result += '</div></div></div></body></html>'
 
     # higher contrast is better for light on dark than vice versa
     if invert_colours:
