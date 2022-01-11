@@ -109,6 +109,9 @@ enum COMMAND {
     Invert,
     InvertAll,
     Error(String),
+    Left,
+    Centre,
+    Right,
 }
 
 impl ELEMENT {
@@ -156,6 +159,9 @@ impl ELEMENT {
                     COMMAND::InvertAll => "".to_string(),
                     COMMAND::Error(message) =>
                         format!("<p style=\"color: red\">{}</p>", message).to_string(),
+                    COMMAND::Left   => "</div><div class='innerbox' style=\"text-align: left\">".to_string(),
+                    COMMAND::Centre => "</div><div class='innerbox' style=\"text-align: center\">".to_string(),
+                    COMMAND::Right  => "</div><div class='innerbox' style=\"text-align: right\">".to_string(),
                 },
 
         }
@@ -406,14 +412,20 @@ fn parse_commands(elements: &mut Vec<ELEMENT>) {
                     *e = ELEMENT::Command(COMMAND::Colour(args[0].to_string(), args[1].to_string()));
                 } else if &caps[1] == "end_colour" {
                     *e = ELEMENT::Command(COMMAND::EndColour);
+                } else if &caps[1] == "invert" {
+                    *e = ELEMENT::Command(COMMAND::Invert);
                 } else if &caps[1] == "invert_all" {
                     if i == 0 {
                         *e = ELEMENT::Command(COMMAND::InvertAll);
                     } else {
                         *e = ELEMENT::Command(COMMAND::Error("!invert_all must be on the first line".to_string()));
                     }
-                } else if &caps[1] == "invert" {
-                    *e = ELEMENT::Command(COMMAND::Invert);
+                } else if &caps[1] == "left" {
+                    *e = ELEMENT::Command(COMMAND::Left);
+                } else if &caps[1] == "right" {
+                    *e = ELEMENT::Command(COMMAND::Right);
+                } else if &caps[1] == "centre" {
+                    *e = ELEMENT::Command(COMMAND::Centre);
                 } else {
                     *e = ELEMENT::Command(COMMAND::Error("Unknown command: ".to_string() + &caps[0]));
                 }
