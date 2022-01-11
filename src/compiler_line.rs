@@ -66,6 +66,9 @@ pub fn parse_text(mut text: String) -> String {
     text = text.replace("!UNDERSCORE_COMPILE_TIME_ESCAPE!", "_");
     text = text.replace("!TILDE_COMPILE_TIME_ESCAPE!", "~");
 
+    // 5: escape backslashed spaces  
+    text = text.replace("\\ ", "&nbsp;");
+
     // 3c: substitute asciimath blocks back in
     #[allow(unused_variables)]
     for block in asciimath_blocks.iter(){
