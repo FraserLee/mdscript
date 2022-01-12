@@ -3,7 +3,7 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
 <html>
     <head>
     <meta charset="utf-8">
-    <title>Markdown</title>
+    <title>markdown</title>
     <style>
        body {
             font-family: sans-serif;
@@ -81,13 +81,14 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
         }
         code {
             font-family: monospace;
-            padding: 0.1em 0.2em;
+            padding: 0.0em 0.1em;
             border-radius: 0.2em;
             background-color: var(--d4);
             color: var(--l0);
         }
         .code-block {
             display: block;
+            padding: 0.1em 0.2em;
             white-space: pre-wrap;
             font-size: 0.9rem;
             line-height: 1.3;
