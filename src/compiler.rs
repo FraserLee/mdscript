@@ -1,7 +1,6 @@
 use crate::{html, compiler_line};
 use regex::Regex;
 
-
 /*
  * This project's been written over the course of a few evenings through the last week or so. At
  * every point I've been trying to maximize functionality over a really short time-frame, which has
@@ -155,21 +154,6 @@ struct LocalState{
     update_vsp: bool,
 }
 
-// *said in an artificially deep and gravely voice*
-#[derive(PartialEq, Eq, Debug, Clone)]
-enum JUSTIFY{ 
-    Left,
-    Centre,
-    Right,
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-enum SPLIT{
-    Left,
-    Right,
-    None,
-}
-
 enum ELEMENT {
     // first pass
     Text(String, usize), // text, indent
@@ -201,6 +185,26 @@ enum COMMAND {
     Error(String),
     Justify(JUSTIFY),
     Split(SPLIT),
+    Embed(EMBED),
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+enum JUSTIFY{ // *said in an artificially deep and gravely voice*
+    Left,
+    Centre,
+    Right,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+enum SPLIT{
+    Left,
+    Right,
+    None,
+}
+
+
+enum EMBED {
+    YouTube(String),
 }
 
 impl ELEMENT {
@@ -244,6 +248,9 @@ impl ELEMENT {
             
             ELEMENT::Command(command) => 
                 match command {
+                    COMMAND::Embed(embed) => match embed {
+                        EMBED::YouTube(id) => html::youtube_embed(&id),
+                    }
                     COMMAND::Error(message) => format!("<p style=\"color: red\">{}</p>", message).to_string(),
                     _ => "".to_string(),
                 },
@@ -547,6 +554,13 @@ fn parse_commands(elements: &mut Vec<ELEMENT>) {
                     *e = ELEMENT::Command(COMMAND::Split(SPLIT::Right));
                 } else if &caps[1] == "vfull" {
                     *e = ELEMENT::Command(COMMAND::Split(SPLIT::None));
+                } else if &caps[1] == "embed" {
+                    let yt_regex = Regex::new(r"^.*(youtu\.be/|v/|u/\w/|embed/|watch\?v=|\&v=)([^#\&\?]*).*").unwrap();
+                    if let Some(id_caps) = yt_regex.captures(&args[0]) {
+                        *e = ELEMENT::Command(COMMAND::Embed(EMBED::YouTube(id_caps[2].to_string())));
+                    } else {
+                        *e = ELEMENT::Command(COMMAND::Error(format!("unknown embed type: {}", args[0])));
+                    }
                 } else {
                     *e = ELEMENT::Command(COMMAND::Error("Unknown command: ".to_string() + &caps[0]));
                 }

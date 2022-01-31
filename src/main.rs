@@ -17,13 +17,16 @@ fn main() {
     }
 
     if args.len() == 3 { // 2 arguments -> output to file
+        let output = compile_str(read(&args[1])); 
+        // compile before opening file so we have it open for a minimum time
+
         let dest = &args[2];
         let file = File::create(dest);
         if file.is_err() {
             eprintln!("Could not write to file {}", dest);
             exit(1);
         }
-        file.unwrap().write_all(compile_str(read(&args[1])).as_bytes()).unwrap();
+        file.unwrap().write_all(output.as_bytes()).unwrap();
         exit(0);
     } 
 
