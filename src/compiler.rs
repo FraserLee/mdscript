@@ -214,7 +214,7 @@ impl ELEMENT {
             ELEMENT::Empty => panic!("tried to render empty element"),
 
 
-            ELEMENT::CodeBlock(code) => format!("<code class=\"prettyprint code-block\">{}</code>\n", code),
+            ELEMENT::CodeBlock(code) => format!("<pre><code>{}</code></pre>\n", code),
             // very much a stopgap till I can get client-side equation rendering
             ELEMENT::LatexBlock(latex) => format!("<p class=\"latex-block\">\\[{}\\]</p>\n", latex),
 
