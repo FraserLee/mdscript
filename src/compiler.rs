@@ -186,6 +186,7 @@ enum COMMAND {
     Justify(JUSTIFY),
     Split(SPLIT),
     Embed(EMBED),
+    BlindText(usize),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -250,8 +251,14 @@ impl ELEMENT {
                 match command {
                     COMMAND::Embed(embed) => match embed {
                         EMBED::YouTube(id) => html::youtube_embed(&id),
-                    }
-                    COMMAND::Error(message) => format!("<p style=\"color: red\">{}</p>", message).to_string(),
+                    },
+
+                    COMMAND::BlindText(count) => 
+                        include_str!("assets/blind_text.html").repeat(count),
+
+                    COMMAND::Error(message) => 
+                        format!("<p style=\"color: red\">{}</p>", message).to_string(),
+
                     _ => "".to_string(),
                 },
         }
@@ -561,6 +568,11 @@ fn parse_commands(elements: &mut Vec<ELEMENT>) {
                     } else {
                         *e = ELEMENT::Command(COMMAND::Error(format!("unknown embed type: {}", args[0])));
                     }
+                } else if &caps[1] == "blind" {
+                    let count = 
+                        if args.len() > 0 { args[0].parse::<usize>().unwrap() } 
+                        else { 1 };
+                    *e = ELEMENT::Command(COMMAND::BlindText(count));
                 } else {
                     *e = ELEMENT::Command(COMMAND::Error("Unknown command: ".to_string() + &caps[0]));
                 }
