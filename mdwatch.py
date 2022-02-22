@@ -8,7 +8,7 @@ from watchdog.events import FileSystemEventHandler
 
 from importlib import reload
 
-import mdscript
+#  import mdscript
 
 last_compile_time = -1000
 file_path = ''
@@ -17,18 +17,22 @@ dest_path = ''
 python_mode = False
 debug_mode = False
 
+currently_compiling = False
 class Handler(FileSystemEventHandler):
     @staticmethod
     def on_any_event(event):
+        global currently_compiling
+        # check that the event we're responding to isn't the write from our last compile
+        if currently_compiling: return
+        currently_compiling = True
+
         # check that it's not destpath changing
         if event and event.src_path and event.src_path.startswith(dest_path):
             return
 
         # super simple debounce
         global last_compile_time
-        if time.time() - last_compile_time < 1:
-            return
-        last_compile_time = time.time()
+        if time.time() - last_compile_time < 1: return
 
         print('recompiling...', end='')
         if python_mode:
@@ -38,6 +42,8 @@ class Handler(FileSystemEventHandler):
             if debug_mode: os.system(f'cargo run {file_path} {dest_path}')
             else: os.system(f'target/debug/mdscript {file_path} {dest_path}')
         print('done')
+        currently_compiling = False
+        last_compile_time = time.time()
 
 if __name__ == '__main__':
     if '-p' in sys.argv[1:3] or '--python' in sys.argv[1:3]:

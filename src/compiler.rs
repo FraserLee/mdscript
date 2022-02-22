@@ -187,6 +187,7 @@ enum COMMAND {
     Split(SPLIT),
     Embed(EMBED),
     PageBreak,
+    BlindText(usize),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -251,9 +252,16 @@ impl ELEMENT {
                 match command {
                     COMMAND::Embed(embed) => match embed {
                         EMBED::YouTube(id) => html::youtube_embed(&id),
-                    }
+                    },
+
+                    COMMAND::BlindText(count) => 
+                        include_str!("assets/blind_text.html").repeat(count),
+
                     COMMAND::PageBreak => "<div class=\"pagebreak\"></div>".to_string(),
-                    COMMAND::Error(message) => format!("<p style=\"color: red\">{}</p>", message).to_string(),
+                    
+                    COMMAND::Error(message) => 
+                        format!("<p style=\"color: red\">{}</p>", message).to_string(),
+
                     _ => "".to_string(),
                 },
         }
@@ -565,6 +573,11 @@ fn parse_commands(elements: &mut Vec<ELEMENT>) {
                     }
                 } else if &caps[1] == "pagebreak" {
                     *e = ELEMENT::Command(COMMAND::PageBreak);
+                } else if &caps[1] == "blind" {
+                    let count = 
+                        if args.len() > 0 { args[0].parse::<usize>().unwrap() } 
+                        else { 1 };
+                    *e = ELEMENT::Command(COMMAND::BlindText(count));
                 } else {
                     *e = ELEMENT::Command(COMMAND::Error("Unknown command: ".to_string() + &caps[0]));
                 }
