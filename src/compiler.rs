@@ -186,6 +186,7 @@ enum COMMAND {
     Justify(JUSTIFY),
     Split(SPLIT),
     Embed(EMBED),
+    PageBreak,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -251,6 +252,7 @@ impl ELEMENT {
                     COMMAND::Embed(embed) => match embed {
                         EMBED::YouTube(id) => html::youtube_embed(&id),
                     }
+                    COMMAND::PageBreak => "<div class=\"pagebreak\"></div>".to_string(),
                     COMMAND::Error(message) => format!("<p style=\"color: red\">{}</p>", message).to_string(),
                     _ => "".to_string(),
                 },
@@ -561,6 +563,8 @@ fn parse_commands(elements: &mut Vec<ELEMENT>) {
                     } else {
                         *e = ELEMENT::Command(COMMAND::Error(format!("unknown embed type: {}", args[0])));
                     }
+                } else if &caps[1] == "pagebreak" {
+                    *e = ELEMENT::Command(COMMAND::PageBreak);
                 } else {
                     *e = ELEMENT::Command(COMMAND::Error("Unknown command: ".to_string() + &caps[0]));
                 }

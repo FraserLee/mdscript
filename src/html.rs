@@ -54,7 +54,11 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
             font-weight: 100;
             font-size: 6em;
             margin-bottom: 0.5em;
+            margin-top: 0.5em;
             text-align: center;
+        }
+        @media print {
+            .pagebreak { page-break-after: always; }
         }
         h2 {
             font-weight: 200;
