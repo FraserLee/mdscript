@@ -53,13 +53,15 @@ pub fn parse_text(mut text: String) -> String {
     text = text.replace("\\_", "!UNDERSCORE_COMPILE_TIME_ESCAPE!");
     text = text.replace("\\~", "!TILDE_COMPILE_TIME_ESCAPE!");
 
-    // 4b: italics, bold, strikethrough, inline code
+    // 4b: italics, bold, strikethrough, underlines
     let re_bold = Regex::new(r"\*\*(.+?)\*\*").unwrap();
     text = re_bold.replace_all(&text, "<b>$1</b>").to_string();
     let re_italics = Regex::new(r"\*(.+?)\*").unwrap();
     text = re_italics.replace_all(&text, "<i>$1</i>").to_string();
     let re_strikethrough = Regex::new(r"~~(.+?)~~").unwrap();
     text = re_strikethrough.replace_all(&text, "<s>$1</s>").to_string();
+    let re_underline = Regex::new(r"__(.+?)__").unwrap();
+    text = re_underline.replace_all(&text, "<u>$1</u>").to_string();
 
     // 4c: re-add escaped asterisks, underscores, tildes
     text = text.replace("!ASTERISK_COMPILE_TIME_ESCAPE!", "*");
