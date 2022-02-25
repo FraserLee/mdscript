@@ -1,9 +1,12 @@
 use regex::Regex;
 pub fn parse_text(mut text: String) -> String {
+    // Takes single line of typical markdown-style text (like a paragraph, or 
+    // a list item, or the text of a heading) and converts it to HTML.
+
     // I don't *love* working on the text itself with hopefully hard to
     // accidentally break temp strings, but this is so much easier and faster 
-    // to avoid setting up my own tokenizer and pattern matcher and the rest.
-    // (which I know, having tried a few hours)
+    // than setting up my own tokenizer and pattern matcher and the rest.
+    // (which I now know, having tried that for a few hours)
 
     // 0: replace characters with their html equivalents
     text = text.replace("&", "&amp;");
@@ -14,7 +17,7 @@ pub fn parse_text(mut text: String) -> String {
 
     // 1a: temporarily replace escaped backticks
     text = text.replace("\\`", "!BACKTICK_COMPILE_TIME_ESCAPE!");
-    // 1b: temporarily replace code-blocks and store them in a vector
+    // 1b: temporarily remove code-blocks and store them in a vector
     let re_code_block = Regex::new(r"`(.+?)`").unwrap();
 
     let code_blocks: Vec<String> = re_code_block.captures_iter(&text).map(|cap| {
@@ -71,6 +74,10 @@ pub fn parse_text(mut text: String) -> String {
     // 5: escape backslashed spaces  
     text = text.replace("\\ ", "&nbsp;");
 
+    // 6: replace links with their html equivalents
+    let re_link = Regex::new(r"\[(.+?)\]\((.+?)\)").unwrap();
+    text = re_link.replace_all(&text, "<a href=\"$2\">$1</a>").to_string();
+
     // 3c: substitute asciimath blocks back in
     #[allow(unused_variables)]
     for block in asciimath_blocks.iter(){
@@ -92,10 +99,6 @@ pub fn parse_text(mut text: String) -> String {
     }
     // 1d: re-add escaped backticks
     text = text.replace("!BACKTICK_COMPILE_TIME_ESCAPE!", "`");
-
-    // 5: replace links with their html equivalents
-    let re_link = Regex::new(r"\[(.+?)\]\((.+?)\)").unwrap();
-    text = re_link.replace_all(&text, "<a href=\"$2\">$1</a>").to_string();
 
     text.trim().to_string()
 }
