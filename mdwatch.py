@@ -23,8 +23,8 @@ class Handler(FileSystemEventHandler):
     def on_any_event(event):
         global currently_compiling
         # check that the event we're responding to isn't the write from our last compile
-        if currently_compiling: return
-        currently_compiling = True
+        #  if currently_compiling: return
+        #  currently_compiling = True
 
         # check that it's not destpath changing
         if event and event.src_path and event.src_path.startswith(dest_path):
@@ -42,7 +42,7 @@ class Handler(FileSystemEventHandler):
             if debug_mode: os.system(f'cargo run {file_path} {dest_path}')
             else: os.system(f'target/debug/mdscript {file_path} {dest_path}')
         print('done')
-        currently_compiling = False
+        #  currently_compiling = False
         last_compile_time = time.time()
 
 if __name__ == '__main__':
