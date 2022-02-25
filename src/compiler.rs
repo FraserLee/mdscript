@@ -98,15 +98,15 @@ pub fn compile_str(in_text: String) -> String {
                 local_state.update_vsp = false;
             }
             if local_state.update_outer { 
-                render.push_str("<div class=\"outerbox\" style=\"background-color: var(--"); 
-                render.push_str(&local_state.colour_bg); 
-                render.push_str(");");
+                render.push_str("<div class=\"outerbox\" style=\"background-color: "); 
+                render.push_str(&parse_colour(&local_state.colour_bg));
+                render.push_str(";");
                 render.push_str("\">"); 
             }
             if local_state.update_inner {
-                render.push_str("<div class=\"innerbox\" style=\"color: var(--");
-                render.push_str(&local_state.colour_fg);
-                render.push_str("); text-align: ");
+                render.push_str("<div class=\"innerbox\" style=\"color: ");
+                render.push_str(&parse_colour(&local_state.colour_fg));
+                render.push_str("; text-align: ");
                 render.push_str(match local_state.justification {
                     JUSTIFY::Left => "left",
                     JUSTIFY::Centre => "center",
@@ -584,5 +584,14 @@ fn parse_commands(elements: &mut Vec<ELEMENT>) {
             }
         }
     }
+}
+
+fn parse_colour(text: &str) -> String {
+    // if text is length 2, assume it's a reference to one of the theme 
+    // colours ("ll", "d2", "a3", etc). Otherwise, assume it's something css
+    // can parse.
+
+    if text.len() == 2 { format!("var(--{})", text) } 
+    else { text.to_string() }
 }
 
