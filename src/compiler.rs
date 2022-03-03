@@ -486,7 +486,9 @@ fn parse_hr(elements: &mut Vec<ELEMENT>) {
     let mut i = 0;
     while i < elements.len() {
         if let ELEMENT::Text(text, _) = &elements[i] {
-            if text.trim() == "---" {
+            // 3 or more dashes, optional whitespace before and after
+            let line_re = Regex::new(r"^\s*-{3,}\s*$").unwrap();
+            if line_re.is_match(text) {
                 elements[i] = ELEMENT::HorizontalRule;
                 if i > 0 { // if we're right below an <h>, nest the hr
                     if let ELEMENT::Header { level, text } = &elements[i - 1] {
