@@ -6,26 +6,15 @@ import os
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from importlib import reload
-
-#  import mdscript
-
 last_compile_time = -1000
 file_path = ''
 dest_path = ''
 
-python_mode = False
 debug_mode = False
 
-currently_compiling = False
 class Handler(FileSystemEventHandler):
     @staticmethod
     def on_any_event(event):
-        global currently_compiling
-        # check that the event we're responding to isn't the write from our last compile
-        #  if currently_compiling: return
-        #  currently_compiling = True
-
         # check that it's not destpath changing
         if event and event.src_path and event.src_path.startswith(dest_path):
             return
@@ -35,36 +24,31 @@ class Handler(FileSystemEventHandler):
         if time.time() - last_compile_time < 1: return
 
         print('recompiling...', end='')
-        if python_mode:
-            if debug_mode: reload(mdscript) # reload if in debug mode
-            mdscript.compile_file(file_path, dest_path)
-        else: # either call cargo or the pre-compiled binary
-            if debug_mode: os.system(f'cargo run {file_path} {dest_path}')
-            else: os.system(f'target/debug/mdscript {file_path} {dest_path}')
+        # either call cargo or the pre-compiled binary
+        if debug_mode: os.system(f'cargo run {file_path} {dest_path}')
+        else: os.system(f'target/debug/mdscript {file_path} {dest_path}')
         print('done')
         #  currently_compiling = False
         last_compile_time = time.time()
 
 if __name__ == '__main__':
-    if '-p' in sys.argv[1:3] or '--python' in sys.argv[1:3]:
-        python_mode = True
-    if '-d' in sys.argv[1:3] or '--debug' in sys.argv[1:3]:
+    if '-d' in sys.argv[1:2] or '--debug' in sys.argv[1:2]:
         debug_mode = True
-    if len(sys.argv) != 2 + python_mode + debug_mode:
-        print('usage: mdwatch.py [--python | -p] [--debug | -d] <file_path>')
+    if len(sys.argv) != 2 + debug_mode:
+        print('usage: mdwatch.py [--debug | -d] <file_path>')
         exit(1)
 
     # directory of the file to watch
     file_path = os.path.abspath(sys.argv[-1])
     dir_path = os.path.dirname(file_path)
     dest_path = dir_path + '/' + os.path.basename(file_path).split('.')[0] + '.html'
+
     print(f'Watching {dir_path}\n- press ctrl+c to exit\n')
 
-    # if we're in rust mode, cd to the directory of this script to run cargo
-    if not python_mode:
-        os.chdir(os.path.dirname(os.path.abspath(__file__)))
-        # if not debug_mode, build it once in advance
-        if not debug_mode: os.system('cargo build --release')
+    # cd to the directory of this script to run cargo
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    # if not debug_mode, build it once in advance
+    if not debug_mode: os.system('cargo build --release')
 
     # recompile any time anything changes in the directory
     event_handler = Handler()
@@ -76,8 +60,7 @@ if __name__ == '__main__':
     # DEBUG: while in development, run a second observer to watch the directory of the build stuff
     if debug_mode:
         observer2 = Observer()
-        dev_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        if not python_mode: dev_dir += '/src'
+        dev_dir = os.path.dirname(os.path.abspath(sys.argv[0])) + '/src'
         observer2.schedule(event_handler, dev_dir, recursive=True)
         observer2.start()
     # END DEBUG
