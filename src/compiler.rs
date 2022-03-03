@@ -433,31 +433,33 @@ fn fence_latex(elements: &mut Vec<ELEMENT>) {
                     match &elements[j] {
                         // break if the next element ends the latex block
                         // and just abandon the current block if we hit a non-text element
-                        ELEMENT::Text(text, _) => { if text.ends_with("$$") { break; } }
+                        ELEMENT::Text(text, _) => { if text.trim().ends_with("$$") { break; } }
                         ELEMENT::Empty => {}
                         _ => { continue 'outer; }
                     }
                     j += 1;
                 }
+                if j == elements.len() {
+                    panic!("latex fence closed by end of document");
+                }
 
                 // pop (drain) all latex lines, and replace with a single latex block
                 // come back and rewrite this with less copies once I understand rust better
                 elements[i] = ELEMENT::LatexBlock((text[2..].to_string() + 
-                            &elements.drain(i + 1..j + 1)
-                            .into_iter()
-                            .map(|e| {
-                                if let ELEMENT::Text(t, _) = e {
-                                    t.to_string()
-                                } else if let ELEMENT::Empty = e {
-                                    "\n".to_string()
-                                } else {
-                                    panic!("latex block contains already parsed element")
-                                }
-                            })
-                            .collect::<Vec<_>>()
-                            .join(" "))
-                        .trim_end_matches("$$")
-                        .to_string(),
+                        &elements.drain(i + 1..j + 1)
+                        .into_iter()
+                        .map(|e| {
+                            match e {
+                                ELEMENT::Text(t, _) => t,
+                                ELEMENT::Empty => "\n".to_string(),
+                                _ => panic!("latex block contains already parsed element"),
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join(" "))
+                    .trim()
+                    .trim_end_matches("$$")
+                    .to_string(),
                 );
             }
         }
