@@ -2,6 +2,7 @@ use std::{fs::File, io::prelude::*, process::exit};
 
 mod compiler;
 mod compiler_line;
+mod colour;
 mod html;
 mod python;
 

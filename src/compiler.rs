@@ -1,4 +1,4 @@
-use crate::{compiler_line, html};
+use crate::{compiler_line, html, colour};
 use regex::Regex;
 
 /*
@@ -108,13 +108,13 @@ pub fn compile_str(in_text: String) -> String {
             }
             if local_state.update_outer {
                 render.push_str("<div class=\"outerbox\" style=\"background-color: ");
-                render.push_str(&parse_colour(&local_state.colour_bg));
+                render.push_str(&colour::parse_colour(&local_state.colour_bg));
                 render.push_str(";");
                 render.push_str("\">");
             }
             if local_state.update_inner {
                 render.push_str("<div class=\"innerbox\" style=\"color: ");
-                render.push_str(&parse_colour(&local_state.colour_fg));
+                render.push_str(&colour::parse_colour(&local_state.colour_fg));
                 render.push_str("; text-align: ");
                 render.push_str(match local_state.justification {
                     JUSTIFY::Left => "left",
@@ -256,11 +256,11 @@ impl ELEMENT {
             ELEMENT::Header { level, text } => format!(
                 "<h{}>{}</h{}>\n",
                 level,
-                compiler_line::parse_text(text),
+                compiler_line::parse_text(text, &local_state.colour_bg),
                 level
             ),
 
-            ELEMENT::Paragraph(text) => format!("<p>{}</p>\n", compiler_line::parse_text(text)),
+            ELEMENT::Paragraph(text) => format!("<p>{}</p>\n", compiler_line::parse_text(text, &local_state.colour_bg)),
 
             ELEMENT::HorizontalRule => "<hr>\n".to_string(),
             ELEMENT::Break(count) => "<br>".repeat(count) + "\n",
@@ -270,7 +270,7 @@ impl ELEMENT {
             ELEMENT::ListItem { indent, text } => format!(
                 "<li style=\"margin-left: {}em\">{}</li>\n",
                 indent as f32 / 2.0,
-                compiler_line::parse_text(text)
+                compiler_line::parse_text(text, &local_state.colour_bg)
             ),
 
             ELEMENT::Image { src, alt } => {
@@ -696,14 +696,3 @@ fn parse_commands(elements: &mut Vec<ELEMENT>) {
     }
 }
 
-fn parse_colour(text: &str) -> String {
-    // if text is length 2, assume it's a reference to one of the theme
-    // colours ("ll", "d2", "a3", etc). Otherwise, assume it's something css
-    // can parse.
-
-    if text.len() == 2 {
-        format!("var(--{})", text)
-    } else {
-        text.to_string()
-    }
-}

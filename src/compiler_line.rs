@@ -1,7 +1,8 @@
 use regex::Regex;
+use crate::colour;
 use gh_emoji;
 
-pub fn parse_text(mut text: String) -> String {
+pub fn parse_text(mut text: String, background: &str) -> String {
     // Takes single line of typical markdown-style text (like a paragraph, or
     // a list item, or the text of a heading) and converts it to HTML.
 
@@ -101,7 +102,11 @@ pub fn parse_text(mut text: String) -> String {
 
     // 1c: substitute code-blocks back in
     for block in code_blocks.iter(){
-        text = text.replacen("!CODE_BLOCK_PLACEHOLDER!", &format!("<code>{}</code>", block)[..], 1);
+        text = text.replacen("!CODE_BLOCK_PLACEHOLDER!", 
+            &format!("<code style=\"{}\">{}</code>",
+                colour::inline_code_colour(background), 
+                block)[..], 
+            1);
     }
     // 1d: re-add escaped backticks
     text = text.replace("!BACKTICK_COMPILE_TIME_ESCAPE!", "`");
