@@ -3,9 +3,10 @@ name = "mdscript"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 regex = "1.5"
 gh-emoji = "1.0"
 
+[dependencies.pyo3]
+version = "0.16.0"
+features = ["auto-initialize"]
