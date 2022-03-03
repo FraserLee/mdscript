@@ -38,7 +38,10 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
             --a4: #A3BE8C;
             --a5: #B47EAD;
 
-            background-color: var(--"#.to_string() + &format!("{}); color: var(--{}", bg, fg) + r#");
+            background-color: var(--"#
+        .to_string()
+        + &format!("{}); color: var(--{}", bg, fg)
+        + r#");
         }
         .outerbox {
             margin: 0;
@@ -137,8 +140,3 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
 pub fn youtube_embed(id: &str) -> String {
     r#"<lite-youtube videoid=""#.to_string() + &id + r#""></lite-youtube>"#
 }
-
-
-
-
-

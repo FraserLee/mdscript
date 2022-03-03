@@ -1,12 +1,9 @@
-use std::{
-    io::prelude::*,
-    fs::File,
-    process::exit,
-};
+use std::{fs::File, io::prelude::*, process::exit};
 
-mod compiler; use compiler::*;
-mod html;
+mod compiler;
+use compiler::*;
 mod compiler_line;
+mod html;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -28,7 +25,7 @@ fn main() {
         }
         file.unwrap().write_all(output.as_bytes()).unwrap();
         exit(0);
-    } 
+    }
 
     // 0 or 3+ arguments -> usage info
     println!("Usage: {} <input> [output]", args[0]);

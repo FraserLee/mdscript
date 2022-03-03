@@ -1,10 +1,10 @@
 use regex::Regex;
 pub fn parse_text(mut text: String) -> String {
-    // Takes single line of typical markdown-style text (like a paragraph, or 
+    // Takes single line of typical markdown-style text (like a paragraph, or
     // a list item, or the text of a heading) and converts it to HTML.
 
     // I don't *love* working on the text itself with hopefully hard to
-    // accidentally break temp strings, but this is so much easier and faster 
+    // accidentally break temp strings, but this is so much easier and faster
     // than setting up my own tokenizer and pattern matcher and the rest.
     // (which I now know, having tried that for a few hours)
 
@@ -71,7 +71,7 @@ pub fn parse_text(mut text: String) -> String {
     text = text.replace("!UNDERSCORE_COMPILE_TIME_ESCAPE!", "_");
     text = text.replace("!TILDE_COMPILE_TIME_ESCAPE!", "~");
 
-    // 5: escape backslashed spaces  
+    // 5: escape backslashed spaces
     text = text.replace("\\ ", "&nbsp;");
 
     // 6: replace links with their html equivalents
@@ -102,7 +102,3 @@ pub fn parse_text(mut text: String) -> String {
 
     text.trim().to_string()
 }
-
-
-
-
