@@ -1,4 +1,6 @@
 use regex::Regex;
+use gh_emoji;
+
 pub fn parse_text(mut text: String) -> String {
     // Takes single line of typical markdown-style text (like a paragraph, or
     // a list item, or the text of a heading) and converts it to HTML.
@@ -77,6 +79,10 @@ pub fn parse_text(mut text: String) -> String {
     // 6: replace links with their html equivalents
     let re_link = Regex::new(r"\[(.+?)\]\((.+?)\)").unwrap();
     text = re_link.replace_all(&text, "<a href=\"$2\">$1</a>").to_string();
+
+    // 7: substitute in emoji from their :shortname: format
+    let replacer = gh_emoji::Replacer::new();
+    text = replacer.replace_all(&text).to_string();
 
     // 3c: substitute asciimath blocks back in
     #[allow(unused_variables)]

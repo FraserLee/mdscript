@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 regex = "1.5"
+gh-emoji = "1.0"
 
