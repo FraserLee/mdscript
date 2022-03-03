@@ -1,0 +1,3 @@
+[submodule "execute-dot-md"]
+	path = execute-dot-md
+	url = https://github.com/FraserLee/execute-dot-md

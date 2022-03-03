@@ -1,22 +1,25 @@
 use std::{fs::File, io::prelude::*, process::exit};
 
 mod compiler;
-use compiler::*;
 mod compiler_line;
 mod html;
+mod python;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
-    if args.len() == 2 { // 1 argument -> output to stdout
-        println!("{}", compile_str(read(&args[1])));
-        exit(0);
+    if args.len() < 2 || args.len() > 3 { // 0 or 3+ arguments -> usage info
+        println!("Usage: {} <file>", args[0]);
+        exit(1);
     }
 
-    if args.len() == 3 { // 2 arguments -> output to file
-        let output = compile_str(read(&args[1])); 
-        // compile before opening file so we have it open for a minimum time
+    // compile before opening write file so we have it open for a minimum time
+    let mut output = python::execute_md(&read(&args[1]));
+    output = compiler::compile_str(output);
 
+    if args.len() == 2 { // 1 argument -> output to stdout
+        println!("{}", output);
+    } else { // 2 arguments -> output to file
         let dest = &args[2];
         let file = File::create(dest);
         if file.is_err() {
@@ -24,12 +27,8 @@ fn main() {
             exit(1);
         }
         file.unwrap().write_all(output.as_bytes()).unwrap();
-        exit(0);
     }
-
-    // 0 or 3+ arguments -> usage info
-    println!("Usage: {} <input> [output]", args[0]);
-    exit(1);
+    exit(0);
 }
 
 fn read(path: &str) -> String {
