@@ -160,7 +160,7 @@ enum ELEMENT {
     Empty,
 
     // more complex elements
-    CodeBlock(String),
+    CodeBlock(String, Option<String>), // codeblock, language (optional)
     LatexBlock(String),
     Header{level: usize, text: String},
     Paragraph(String),
@@ -216,7 +216,14 @@ impl ELEMENT {
             ELEMENT::Empty => panic!("tried to render empty element"),
 
 
-            ELEMENT::CodeBlock(code) => format!("<pre><code>{}</code></pre>\n", code),
+            ELEMENT::CodeBlock(code, language) => 
+                format!("<pre><code{}>{}</code></pre>\n", 
+                    if let Some(language) = language { 
+                        format!(" class=\"language-{}\"", language) 
+                    } else { "".to_string() },
+                    code
+                ),
+
             // very much a stopgap till I can get client-side equation rendering
             ELEMENT::LatexBlock(latex) => format!("<p class=\"latex-block\">\\[{}\\]</p>\n", latex),
 
@@ -328,15 +335,21 @@ fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
     let mut in_codeblock = false;
     let mut codeblock_start = 0;
     let mut codeblock_indent = 0;
+    let mut codeblock_language: Option<String> = None;
     
     let mut i = 0;
     while i < elements.len() {
         if let ELEMENT::Text(text, indent) = &elements[i] {
             if text.starts_with("```") {
                 if !in_codeblock { // start of codeblock
-                    in_codeblock = true;
-                    codeblock_start = i;
+
+                    in_codeblock     = true;
+                    codeblock_start  = i;
                     codeblock_indent = *indent;
+
+                    if text.trim().len() > 3 {
+                        codeblock_language = Some(text[3..].trim().to_string());
+                    }
                 } else { // end of codeblock
 
                     // pop (drain) all codeblock lines, and replace with a single
@@ -351,10 +364,13 @@ fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
                             } else {
                                 panic!("codeblock contains already parsed element")
                             }
-                        }).collect::<Vec<_>>().join("\n"));
+                        }).collect::<Vec<_>>().join("\n"), 
+                        codeblock_language
+                    );
 
                     // then reset i and remove the closing ```
                     i = codeblock_start;
+                    codeblock_language = None;
                     elements.remove(i+1);
                 
                     in_codeblock = false;
