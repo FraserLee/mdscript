@@ -52,7 +52,6 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
             padding: 0.5em 4em;
             max-width: 48em;
         }
-
         h1 {
             font-weight: 100;
             font-size: 6em;
@@ -100,6 +99,10 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
             font-size: 0.9rem;
             line-height: 1.3;
             padding: 0.3rem 0.5rem;
+            margin: auto;
+            /* width: max-content; */
+            outline-width: 0.1em;
+            outline-style: solid;
         }
         a:link {
             color: var(--f2);
