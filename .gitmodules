@@ -1,3 +1,6 @@
 [submodule "execute-dot-md"]
 	path = execute-dot-md
 	url = https://github.com/FraserLee/execute-dot-md
+[submodule "linker-dot-md"]
+	path = linker-dot-md
+	url = https://github.com/FraserLee/linker-dot-md

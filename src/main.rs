@@ -13,8 +13,8 @@ fn main() {
         exit(1);
     }
 
-    // compile before opening write file so we have it open for a minimum time
-    let mut output = python::execute_md(&read(&args[1]));
+    // compile before opening the output file so we have it open for a minimum time
+    let mut output = python::execute_md(&args[1]);
     output = compiler::compile_str(output);
 
     if args.len() == 2 { // 1 argument -> output to stdout
@@ -31,13 +31,3 @@ fn main() {
     exit(0);
 }
 
-fn read(path: &str) -> String {
-    let file = File::open(path);
-    if file.is_err() {
-        eprintln!("Could not read file {}", path);
-        exit(1);
-    }
-    let mut contents = String::new();
-    file.unwrap().read_to_string(&mut contents).unwrap();
-    contents
-}
