@@ -411,6 +411,13 @@ fn fence_codeblocks(elements: &mut Vec<ELEMENT>) {
                         language: codeblock_language,
                     };
 
+                    // make codeblock.code html-safe
+                    if let ELEMENT::CodeBlock { ref mut code, .. } = elements[codeblock_start] {
+                        *code = code.replace("&", "&amp;");
+                        *code = code.replace("<", "&lt;");
+                        *code = code.replace(">", "&gt;");
+                    }
+
                     // then reset i and language, and remove the closing ```
                     in_codeblock       = false;
                     codeblock_language = None;
