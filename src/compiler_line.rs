@@ -85,6 +85,11 @@ pub fn parse_text(mut text: String, background: &str) -> String {
     let replacer = gh_emoji::Replacer::new();
     text = replacer.replace_all(&text).to_string();
 
+    // 8: de-escape <br>s
+    // (Honestly this is just stylistic, I prefer for my markdown flavour 
+    // to not interpret html tags with the sole exception of <br>)
+    text = text.replace("&lt;br&gt;", "<br>");
+
     // 3c: substitute asciimath blocks back in
     #[allow(unused_variables)]
     for block in asciimath_blocks.iter(){
