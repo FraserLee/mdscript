@@ -3,10 +3,9 @@ pub fn parse_colour(text: &str) -> String {
     // colours ("ll", "d2", "a3", etc). Otherwise, assume it's something css
     // can parse.
 
-    if text.len() == 2 {
-        format!("var(--{})", text)
-    } else {
-        text.to_string()
+    match text.len() {
+        2 => format!("var(--{})", text),
+        _ => text.to_string()
     }
 }
 
