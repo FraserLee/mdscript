@@ -26,7 +26,7 @@ class Handler(FileSystemEventHandler):
         print('recompiling...', end='')
         # either call cargo or the pre-compiled binary
         if debug_mode: os.system(f'cargo run {file_path} {dest_path}')
-        else: os.system(f'target/debug/mdscript {file_path} {dest_path}')
+        else: os.system(f'mdscript {file_path} {dest_path}')
         print('done')
         #  currently_compiling = False
         last_compile_time = time.time()
