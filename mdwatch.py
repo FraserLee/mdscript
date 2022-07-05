@@ -24,7 +24,7 @@ class Handler(FileSystemEventHandler):
         if time.time() - last_compile_time < 1: return
 
         print('recompiling...', end='')
-        # either call cargo or the pre-compiled binary
+        # either call cargo or the pre-installed binary
         if debug_mode: os.system(f'cargo run {file_path} {dest_path}')
         else: os.system(f'mdscript {file_path} {dest_path}')
         print('done')
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # cd to the directory of this script to run cargo
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     # if not debug_mode, build it once in advance
-    if not debug_mode: os.system('cargo build --release')
+    if not debug_mode: os.system('cargo install --path .')
 
     # recompile any time anything changes in the directory
     event_handler = Handler()
