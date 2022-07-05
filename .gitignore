@@ -1,5 +1,6 @@
 __pycache__/
 /target
+.venv
 
 *.DS_Store
 
