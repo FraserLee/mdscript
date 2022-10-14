@@ -126,16 +126,27 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
     <script>// lite youtube stuff
         class LiteYTEmbed extends HTMLElement{connectedCallback(){this.videoId=this.getAttribute("videoid");let e=this.querySelector(".lty-playbtn");if(this.playLabel=e&&e.textContent.trim()||this.getAttribute("playlabel")||"Play",this.style.backgroundImage||(this.style.backgroundImage=`url("https://i.ytimg.com/vi/${this.videoId}/hqdefault.jpg")`),e||((e=document.createElement("button")).type="button",e.classList.add("lty-playbtn"),this.append(e)),!e.textContent){const t=document.createElement("span");t.className="lyt-visually-hidden",t.textContent=this.playLabel,e.append(t)}this.addEventListener("pointerover",LiteYTEmbed.warmConnections,{once:!0}),this.addEventListener("click",this.addIframe)}static addPrefetch(e,t,n){const a=document.createElement("link");a.rel=e,a.href=t,n&&(a.as=n),document.head.append(a)}static warmConnections(){LiteYTEmbed.preconnected||(LiteYTEmbed.addPrefetch("preconnect","https://www.youtube-nocookie.com"),LiteYTEmbed.addPrefetch("preconnect","https://www.google.com"),LiteYTEmbed.addPrefetch("preconnect","https://googleads.g.doubleclick.net"),LiteYTEmbed.addPrefetch("preconnect","https://static.doubleclick.net"),LiteYTEmbed.preconnected=!0)}addIframe(e){if(this.classList.contains("lyt-activated"))return;e.preventDefault(),this.classList.add("lyt-activated");const t=new URLSearchParams(this.getAttribute("params")||[]);t.append("autoplay","1");const n=document.createElement("iframe");n.width=560,n.height=315,n.title=this.playLabel,n.allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture",n.allowFullscreen=!0,n.src=`https://www.youtube-nocookie.com/embed/${encodeURIComponent(this.videoId)}?${t.toString()}`,this.append(n),n.focus()}}customElements.define("lite-youtube",LiteYTEmbed);
     </script>
-    <link href="https://unpkg.com/nord-highlightjs@0.1.0/dist/nord.css" rel="stylesheet" type="text/css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/highlight.min.js"></script>
-    <script>hljs.initHighlightingOnLoad();</script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism-themes/1.9.0/prism-nord.min.css" integrity="sha512-/1nWQ0aAin0IGM5zDndLyY+6xUSiqA1ILh4Mm0XjSqqj4cXOH36rB/2Ep96sT4FOxvNEnUxyPNwqPlEmuImAFw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        pre code { outline-style: none; }
+        pre[class*=language-] { 
+            padding: 0.3em 0.5em;
+            border-radius: 0;
+        }
+    </style>
+
+
 </head>
 <body>
+
 <div class="outerbox">
 <div class="innerbox">
 "# + &in_text + r#"
 </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha512-9khQRAUBYEJDCDVP2yw3LRUQvjJ0Pjx0EShmaQjcHa6AXiOv6qHQu9lCAIR8O+/D8FtaCoJ2c0Tf9Xo7hYH01Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha512-SkmBfuA2hqjzEVpmnMt/LINrjop3GKWqsuLSSB3e7iBmYK7JuWw4ldmmxwD9mdm2IRTTi0OxSAfEGvgEi0i2Kw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
 </html>"#
 }

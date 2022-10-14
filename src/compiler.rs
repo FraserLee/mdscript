@@ -241,12 +241,8 @@ impl ELEMENT {
             ELEMENT::Empty => panic!("tried to render empty element"),
 
             ELEMENT::CodeBlock{ code, language } => format!(
-                "<pre><code{}>{}</code></pre>\n",
-                if let Some(language) = language {
-                    format!(" class=\"language-{}\"", language)
-                } else {
-                    "".to_string()
-                },
+                "<pre><code class=\"language-{}\">{}</code></pre>\n",
+                if let Some(lang) = language { lang } else { "plain".to_string() },
                 code
             ),
 
