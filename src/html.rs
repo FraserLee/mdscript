@@ -21,7 +21,7 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
             --d3: #434C5E;
             --d4: #4C566A;
 
-            --ll: #FAFAFA;
+            --ll: #FFFFFF;
             --l0: #F0F0F0;
             --l1: #ECEFF4;
             --l2: #E5E9F0;
