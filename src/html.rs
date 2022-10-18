@@ -82,6 +82,9 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
             font-size: 1.2em;
             margin: 0.5em 0;
         }
+        hr {
+            border-style: solid;
+        }
         img {
             width: 100%;
         }
