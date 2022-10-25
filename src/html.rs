@@ -89,9 +89,9 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
             width: 100%;
         }
         code {
-            font-family: monospace;
-            padding: 0.0em 0.1em;
-            border-radius: 0.2em;
+            font-family: "Fira Code",Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;
+            font-size: 0.9rem;
+            padding: 0.1em 0.2em;
             background-color: var(--d4);
             color: var(--l0);
         }

@@ -17,7 +17,7 @@ pub fn is_colour_dark(text: &str) -> bool {
 
 pub fn inline_code_colour(background: &str) -> String {
     if is_colour_dark(background) {
-        format!("background-color: {}; color: {};", parse_colour("d2"), parse_colour("l0"))
+        format!("background-color: {}; color: {};", parse_colour("d1"), parse_colour("l0"))
     } else {
         format!("background-color: {}; color: {};", parse_colour("l2"), parse_colour("d1"))
     }
