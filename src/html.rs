@@ -90,7 +90,7 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
         }
         code {
             font-family: "Fira Code",Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;
-            font-size: 0.9rem;
+            font-size: 0.9em;
             padding: 0.1em 0.2em;
             background-color: var(--d4);
             color: var(--l0);
