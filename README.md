@@ -121,7 +121,7 @@ text editor, it will prompt you to reload the file, and you can keep working.
 
 It's taken a few attempts: I tried it first in a full T3 stack web-app with vim
 emulation through the browser *(which may or may not still be online
-[here](nvim-draw-test.vercel.app/))*, and a second time basically in the
+[here](https://nvim-draw-test.vercel.app/))*, and a second time basically in the
 current form only with raw JS instead of Elm. 
 
 I'm really happy with the current stack. The pace I'm able to develop at is so
