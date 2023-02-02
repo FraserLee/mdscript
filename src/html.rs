@@ -140,6 +140,7 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
     </style>
 
 
+
 </head>
 <body>
 
@@ -150,6 +151,14 @@ pub fn wrap_html(in_text: &str, bg: &str, fg: &str) -> String {
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" integrity="sha512-9khQRAUBYEJDCDVP2yw3LRUQvjJ0Pjx0EShmaQjcHa6AXiOv6qHQu9lCAIR8O+/D8FtaCoJ2c0Tf9Xo7hYH01Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha512-SkmBfuA2hqjzEVpmnMt/LINrjop3GKWqsuLSSB3e7iBmYK7JuWw4ldmmxwD9mdm2IRTTi0OxSAfEGvgEi0i2Kw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!--
+    <script>
+    window.MathJax = {
+      loader: {load: ['[tex]/require', '[tex]/mathtools']},
+      tex: {packages: {'[+]': ['require', 'mathtools']}},
+    };
+    </script>
+-->
 </body>
 </html>"#
 }
