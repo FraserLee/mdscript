@@ -9,14 +9,14 @@ information. Arrows and boxes and rotated paragraphs all meant that I could
 scan through a page and get a sense of the structure without reading a word.
 
 In other ways, it was terrible. I can type easily 3 times faster than I can
-write, and without certain associated \*legibility issues.\* You also can't
-edit much on paper - not before it becomes more scratched-out than writing.
-That worked out fine for some professors, but fell apart when presented with
-the meandering stylings of others (one in particular comes to mind, who's
+write, and without certain associated \*legibility issues.\* There were times 
+when I would love to copy in a definition verbatim, but ended up leaving it 
+out because it would be too much effort. You also can't edit much on 
+paper - not before it becomes more scratched-out than writing. That worked out 
+fine for the classes of some professors, but fell apart when presented with
+the meandering stylings of others (one in particular comes to mind, whose
 entire lectures were formatted as a series of nested tangents of absolutely
-unpredictable length and relevance). There were times when I would love to copy
-in a definition verbatim, but ended up leaving it out because it would be too
-much effort.
+unpredictable length and relevance). 
 
 I also had a habit of writing my notes on the nearest blank piece of paper -
 which could end up just a few pages ahead of where I should, or in a completely
@@ -39,7 +39,7 @@ mental map I had created. It also had some slight issues working within a git
 repo - not a dealbreaker, but annoying.
 
 I moved on to LaTeX. I mainly I just wanted to typeset equations correctly, but
-thought I might as well try going all in. After about a month of `overfull
+thought I might as well go all in. After about a month of `overfull
 hbox, badness 10000` and battling *really weird* syntactic decisions, I moved on.
 
 From here, it really seemed like markdown was the way to go. 
